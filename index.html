@@ -1034,4 +1034,115 @@ function renderDayContent(dayIndex) {
         <div class="exercise-image">
           <img src="${imageUrl}" alt="${exercise.eng}" loading="lazy" 
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-          <div class="placeholder" style="display
+          <div class="placeholder" style="display:none;">
+            <span class="icon">💪</span>
+            <span>${exercise.eng}</span>
+          </div>
+        </div>
+
+        <div class="exercise-header">
+          <h3>${exercise.eng || 'Exercise'}</h3>
+          <div class="arabic">${exercise.arb || ''}</div>
+          <span class="muscle">${exercise.muscle || '—'}</span>
+        </div>
+
+        <div class="details">
+          <div class="detail">
+            <span class="detail-label">Sets</span>
+            <span class="detail-value">${exercise.sets || '—'}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Reps</span>
+            <span class="detail-value">${exercise.reps || '—'}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Rest</span>
+            <span class="detail-value">${exercise.rest || '—'}</span>
+          </div>
+        </div>
+
+        <div class="inputs">
+          <div class="input-group">
+            <label for="weight-${id}">🏋️ Weight</label>
+            <input id="weight-${id}" type="text" placeholder="e.g. 20 kg" value="${savedWeight}">
+          </div>
+          <div class="input-group">
+            <label for="achieved-${id}">✅ Reps Achieved</label>
+            <input id="achieved-${id}" type="text" placeholder="e.g. 8, 8, 7" value="${savedAchieved}">
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div></div>`;
+  contentContainer.innerHTML = html;
+}
+
+// ============================================================
+// SAVE PROGRESS
+// ============================================================
+function saveProgress() {
+  if (!currentWorkoutData || currentWorkoutData.length === 0) {
+    showSaveMessage('⚠️ No workout data to save', 'error');
+    return;
+  }
+
+  let savedCount = 0;
+
+  currentWorkoutData.forEach((section, sectionIndex) => {
+    if (!section.exercises) return;
+    section.exercises.forEach((exercise, exerciseIndex) => {
+      const id = `${sectionIndex}-${exerciseIndex}`;
+      const weight = document.getElementById(`weight-${id}`)?.value || '';
+      const achieved = document.getElementById(`achieved-${id}`)?.value || '';
+
+      if (weight || achieved) {
+        localStorage.setItem(`weight-${id}`, weight);
+        localStorage.setItem(`achieved-${id}`, achieved);
+        savedCount++;
+      }
+    });
+  });
+
+  if (savedCount > 0) {
+    showSaveMessage(`✅ Saved ${savedCount} entries!`, 'success');
+  } else {
+    showSaveMessage('ℹ️ No data to save. Enter some weights or reps first.', 'error');
+  }
+}
+
+// ============================================================
+// SHOW MESSAGES
+// ============================================================
+function showLoginMessage(text, type) {
+  const el = document.getElementById('loginMessage');
+  el.textContent = text;
+  el.className = 'message ' + type;
+  el.style.display = 'block';
+  if (type === 'success' || type === 'info') {
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+}
+
+function showSaveMessage(text, type) {
+  const el = document.getElementById('saveMessage');
+  el.textContent = text;
+  el.className = 'save-message ' + type;
+  el.style.display = 'inline';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    saveProgress();
+  }
+});
+</script>
+
+</body>
+</html>
