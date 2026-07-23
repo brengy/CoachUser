@@ -902,43 +902,40 @@ function renderDayTabs() {
     return;
   }
 
-  // Show ALL 7 days
-  const totalDays = 7;
+  // Define the workout days (skip Day 3 and Day 7 which are rest)
+  // Session 1 = Day 1, Session 2 = Day 2, Session 3 = Day 4, Session 4 = Day 5, Session 5 = Day 6
+  const sessionMap = [
+    { dayIndex: 0, sessionNum: 1 },  // Day 1 -> Session 1
+    { dayIndex: 1, sessionNum: 2 },  // Day 2 -> Session 2
+    { dayIndex: 3, sessionNum: 3 },  // Day 4 -> Session 3
+    { dayIndex: 4, sessionNum: 4 },  // Day 5 -> Session 4
+    { dayIndex: 5, sessionNum: 5 }   // Day 6 -> Session 5
+  ];
+
   let html = '';
 
-  for (let i = 0; i < totalDays; i++) {
-    const dayNum = i + 1;
-    
-    // Check if this day exists in the pipeline data
-    const dayData = week.days[i] || null;
-    const isRest = dayData ? dayData.type === 'rest' : false;
-    const isActive = i === activeDayIndex;
+  sessionMap.forEach(({ dayIndex, sessionNum }) => {
+    const isActive = dayIndex === activeDayIndex;
     
     // Check if this day has exercises
-    const daySection = currentWorkoutData[i] || { exercises: [] };
+    const daySection = currentWorkoutData[dayIndex] || { exercises: [] };
     const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
     
-    // Determine icon
-    let icon = '📋'; // Empty/no data
-    if (isRest) {
-      icon = '😴'; // Rest day
-    } else if (hasWorkout) {
-      icon = '💪'; // Workout day with exercises
-    }
+    const icon = hasWorkout ? '💪' : '📋';
 
     html += `
-      <button class="day-tab ${isActive ? 'active' : ''} ${isRest ? 'rest' : ''}" 
-              onclick="${isRest ? '' : 'switchDay(' + i + ')'}" 
-              ${isRest ? 'disabled' : ''}>
-        <span class="day-label">Day ${dayNum}</span>
+      <button class="day-tab ${isActive ? 'active' : ''}" 
+              onclick="switchDay(${dayIndex})">
+        <span class="day-label">Session ${sessionNum}</span>
         <span class="day-icon">${icon}</span>
       </button>
     `;
-  }
+  });
 
   container.innerHTML = html;
 }
 
+ 
 // ============================================================
 // SWITCH WEEK
 // ============================================================
