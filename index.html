@@ -132,50 +132,6 @@
     color: #1e40af;
   }
 
-  /* ===== API SETUP ===== */
-  .api-setup {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    display: none;
-  }
-
-  .api-setup.visible {
-    display: block;
-  }
-
-  .api-setup label {
-    display: block;
-    font-weight: 600;
-    font-size: 13px;
-    color: #374151;
-    margin-bottom: 4px;
-  }
-
-  .api-setup input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-  }
-
-  .api-setup .btn-setup {
-    margin-top: 8px;
-    padding: 8px 16px;
-    background: #6b7280;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-
-  .api-setup .btn-setup:hover {
-    background: #4b5563;
-  }
-
   /* ===== WEEK TABS ===== */
   .week-container {
     background: white;
@@ -280,15 +236,16 @@
     opacity: 0.9;
   }
 
-  /* ===== DAY TABS ===== */
+  /* ===== DAY TABS - ALL 7 DAYS ===== */
   .day-tabs-container {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
     gap: 6px;
-    flex-wrap: wrap;
+    width: 100%;
   }
 
   .day-tab {
-    padding: 10px 18px;
+    padding: 10px 4px;
     border: 2px solid #e5e7eb;
     border-radius: 10px;
     background: white;
@@ -297,8 +254,8 @@
     font-size: 13px;
     transition: all 0.2s;
     color: #1f2937;
-    min-width: 60px;
     text-align: center;
+    min-width: 0;
   }
 
   .day-tab:hover:not(.rest):not(.active) {
@@ -311,6 +268,7 @@
     color: white;
     border-color: #1e40af;
     transform: scale(1.05);
+    z-index: 1;
   }
 
   .day-tab.rest {
@@ -628,22 +586,44 @@
   }
 
   /* ===== RESPONSIVE ===== */
-  @media (max-width: 600px) {
-    .container { padding: 12px; }
-    .exercise-grid { padding: 10px; }
-    .exercise-image { height: 140px; }
-    .week-nav-tabs { gap: 4px; }
-    .week-tab { padding: 6px 14px; font-size: 13px; }
-    .day-tab { padding: 8px 12px; font-size: 12px; min-width: 50px; }
-    .login-section { padding: 24px; margin: 20px; }
-    .details { grid-template-columns: 1fr 1fr 1fr; }
-    .inputs { grid-template-columns: 1fr 1fr; }
-    .workout-header h2 { font-size: 17px; }
+  @media (max-width: 768px) {
+    .day-tabs-container {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .day-tab {
+      padding: 6px 2px;
+      font-size: 11px;
+    }
+    .day-tab .day-icon {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 500px) {
+    .day-tabs-container {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .day-tab {
+      padding: 4px 2px;
+      font-size: 10px;
+      border-radius: 6px;
+    }
+    .day-tab .day-label {
+      font-size: 8px;
+    }
+    .day-tab .day-icon {
+      font-size: 12px;
+    }
+    .week-tab {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 
   @media (max-width: 400px) {
     .exercise-grid { grid-template-columns: 1fr; }
-    .day-tab { padding: 6px 10px; font-size: 11px; min-width: 44px; }
     .inputs { grid-template-columns: 1fr; }
   }
 </style>
@@ -663,19 +643,10 @@
     <span class="emoji">👋</span>
     <h2>Welcome!</h2>
     <p>Enter your username to view your workout plan</p>
-    
-    <div class="api-setup" id="apiSetup">
-      <label>Google Apps Script URL</label>
-      <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/....../exec">
-      <button class="btn-setup" onclick="saveApiUrl()">💾 Save URL</button>
-    </div>
 
     <input type="text" id="usernameInput" placeholder="Enter your username" onkeypress="if(event.key==='Enter') login()">
     <button class="btn-login" id="loginBtn" onclick="login()">📥 Load My Workout</button>
     <div id="loginMessage" class="message"></div>
-    <div style="margin-top:12px; font-size:13px; color:#6b7280;">
-      <a href="#" onclick="document.getElementById('apiSetup').classList.toggle('visible'); return false;">⚙️ Configure API URL</a>
-    </div>
   </div>
 
   <!-- ===== WEEK TABS ===== -->
@@ -688,7 +659,7 @@
       <div class="week-nav-container">
         <!-- Week Tabs -->
         <div class="week-nav-tabs" id="weekTabs"></div>
-        <!-- Day Tabs -->
+        <!-- Day Tabs - All 7 Days -->
         <div class="day-tabs-container" id="dayTabs"></div>
       </div>
     </div>
@@ -710,31 +681,27 @@
 
 <script>
 // ============================================================
+// HARDCODED API URL (Same for both pages)
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbwNCZAjL8vG3hoO_eFNbeRV4Qq1m71GZJtgCvwJ4rpc73Bpm3JQ3epxl93AnRpqpX1gOA/exec';
+
+// ============================================================
 // CONFIGURATION
 // ============================================================
-const STORAGE_KEY_API = 'user_api_url';
 const STORAGE_KEY_USER = 'workout_username';
 let currentWorkoutData = [];
 let currentPipeline = [];
 let activeWeekIndex = 0;
 let activeDayIndex = 0;
 let currentUsername = '';
-let apiUrl = '';
 
-// Load saved data
-const savedApiUrl = localStorage.getItem(STORAGE_KEY_API);
+// Load saved username
 const savedUsername = localStorage.getItem(STORAGE_KEY_USER);
-
-if (savedApiUrl) {
-  apiUrl = savedApiUrl;
-  document.getElementById('apiUrl').value = savedApiUrl;
-}
-
 if (savedUsername) {
   document.getElementById('usernameInput').value = savedUsername;
   currentUsername = savedUsername;
   window.addEventListener('load', function() {
-    if (savedApiUrl && savedUsername) {
+    if (savedUsername) {
       setTimeout(login, 500);
     }
   });
@@ -784,26 +751,9 @@ function getExerciseImage(exerciseName) {
 }
 
 // ============================================================
-// SAVE API URL
-// ============================================================
-function saveApiUrl() {
-  const url = document.getElementById('apiUrl').value.trim();
-  if (url) {
-    apiUrl = url;
-    localStorage.setItem(STORAGE_KEY_API, url);
-    showLoginMessage('✅ API URL saved!', 'success');
-  }
-}
-
-// ============================================================
 // API CALL
 // ============================================================
 async function callApi(action, data = {}) {
-  if (!apiUrl) {
-    showLoginMessage('Please configure your API URL first (click the link below)', 'error');
-    return null;
-  }
-
   try {
     const params = new URLSearchParams();
     params.append('action', action);
@@ -813,7 +763,7 @@ async function callApi(action, data = {}) {
       }
     });
 
-    const url = apiUrl + '?' + params.toString();
+    const url = API_URL + '?' + params.toString();
     console.log('API Request:', url);
 
     const response = await fetch(url, { method: 'GET' });
@@ -839,12 +789,6 @@ async function login() {
   const username = document.getElementById('usernameInput').value.trim();
   if (!username) {
     showLoginMessage('Please enter your username', 'error');
-    return;
-  }
-
-  if (!apiUrl) {
-    showLoginMessage('Please configure your API URL first (click the link below)', 'error');
-    document.getElementById('apiSetup').classList.add('visible');
     return;
   }
 
@@ -939,7 +883,7 @@ function renderWeekTabs() {
 }
 
 // ============================================================
-// RENDER DAY TABS
+// RENDER DAY TABS - ALL 7 DAYS
 // ============================================================
 function renderDayTabs() {
   const container = document.getElementById('dayTabs');
@@ -956,27 +900,37 @@ function renderDayTabs() {
     return;
   }
 
+  // IMPORTANT: Show ALL days (1-7), not just the ones in the data
+  const totalDays = 7;
   let html = '';
-  week.days.forEach((day, index) => {
-    const isRest = day.type === 'rest';
-    const isActive = index === activeDayIndex;
-    const dayNum = index + 1;
+
+  for (let i = 0; i < totalDays; i++) {
+    const dayNum = i + 1;
+    const dayData = week.days[i] || { label: 'Day ' + dayNum, type: 'rest' };
+    const isRest = dayData.type === 'rest';
+    const isActive = i === activeDayIndex;
     
-    // Check if this day has exercises
-    const dayData = currentWorkoutData[index] || { exercises: [] };
-    const hasWorkout = dayData.exercises && dayData.exercises.length > 0;
+    // Check if this day has exercises in the data
+    const daySection = currentWorkoutData[i] || { exercises: [] };
+    const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
     
-    const icon = isRest ? '😴' : (hasWorkout ? '💪' : '📋');
+    // Icon: 😴 for rest, 💪 for workout with exercises, 📋 for empty workout day
+    let icon = '📋';
+    if (isRest) {
+      icon = '😴';
+    } else if (hasWorkout) {
+      icon = '💪';
+    }
 
     html += `
       <button class="day-tab ${isActive ? 'active' : ''} ${isRest ? 'rest' : ''}" 
-              onclick="${isRest ? '' : 'switchDay(' + index + ')'}" 
+              onclick="${isRest ? '' : 'switchDay(' + i + ')'}" 
               ${isRest ? 'disabled' : ''}>
         <span class="day-label">Day ${dayNum}</span>
         <span class="day-icon">${icon}</span>
       </button>
     `;
-  });
+  }
 
   container.innerHTML = html;
 }
@@ -1080,115 +1034,4 @@ function renderDayContent(dayIndex) {
         <div class="exercise-image">
           <img src="${imageUrl}" alt="${exercise.eng}" loading="lazy" 
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-          <div class="placeholder" style="display:none;">
-            <span class="icon">💪</span>
-            <span>${exercise.eng}</span>
-          </div>
-        </div>
-
-        <div class="exercise-header">
-          <h3>${exercise.eng || 'Exercise'}</h3>
-          <div class="arabic">${exercise.arb || ''}</div>
-          <span class="muscle">${exercise.muscle || '—'}</span>
-        </div>
-
-        <div class="details">
-          <div class="detail">
-            <span class="detail-label">Sets</span>
-            <span class="detail-value">${exercise.sets || '—'}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Reps</span>
-            <span class="detail-value">${exercise.reps || '—'}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Rest</span>
-            <span class="detail-value">${exercise.rest || '—'}</span>
-          </div>
-        </div>
-
-        <div class="inputs">
-          <div class="input-group">
-            <label for="weight-${id}">🏋️ Weight</label>
-            <input id="weight-${id}" type="text" placeholder="e.g. 20 kg" value="${savedWeight}">
-          </div>
-          <div class="input-group">
-            <label for="achieved-${id}">✅ Reps Achieved</label>
-            <input id="achieved-${id}" type="text" placeholder="e.g. 8, 8, 7" value="${savedAchieved}">
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += `</div></div>`;
-  contentContainer.innerHTML = html;
-}
-
-// ============================================================
-// SAVE PROGRESS
-// ============================================================
-function saveProgress() {
-  if (!currentWorkoutData || currentWorkoutData.length === 0) {
-    showSaveMessage('⚠️ No workout data to save', 'error');
-    return;
-  }
-
-  let savedCount = 0;
-
-  currentWorkoutData.forEach((section, sectionIndex) => {
-    if (!section.exercises) return;
-    section.exercises.forEach((exercise, exerciseIndex) => {
-      const id = `${sectionIndex}-${exerciseIndex}`;
-      const weight = document.getElementById(`weight-${id}`)?.value || '';
-      const achieved = document.getElementById(`achieved-${id}`)?.value || '';
-
-      if (weight || achieved) {
-        localStorage.setItem(`weight-${id}`, weight);
-        localStorage.setItem(`achieved-${id}`, achieved);
-        savedCount++;
-      }
-    });
-  });
-
-  if (savedCount > 0) {
-    showSaveMessage(`✅ Saved ${savedCount} entries!`, 'success');
-  } else {
-    showSaveMessage('ℹ️ No data to save. Enter some weights or reps first.', 'error');
-  }
-}
-
-// ============================================================
-// SHOW MESSAGES
-// ============================================================
-function showLoginMessage(text, type) {
-  const el = document.getElementById('loginMessage');
-  el.textContent = text;
-  el.className = 'message ' + type;
-  el.style.display = 'block';
-  if (type === 'success' || type === 'info') {
-    setTimeout(() => { el.style.display = 'none'; }, 5000);
-  }
-}
-
-function showSaveMessage(text, type) {
-  const el = document.getElementById('saveMessage');
-  el.textContent = text;
-  el.className = 'save-message ' + type;
-  el.style.display = 'inline';
-  setTimeout(() => { el.style.display = 'none'; }, 4000);
-}
-
-// ============================================================
-// KEYBOARD SHORTCUTS
-// ============================================================
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.key === 's') {
-    e.preventDefault();
-    saveProgress();
-  }
-});
-</script>
-
-</body>
-</html>
+          <div class="placeholder" style="display
