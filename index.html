@@ -660,13 +660,13 @@ let activeWeekIndex = 0;
 let activeSessionIndex = 0;
 let currentUsername = '';
 
-// Session mapping: Day 1,2,4,5,6 -> Session 1,2,3,4,5
+// ✅ FIXED: Day 1,2,4,5,6 → Session 1,2,3,4,5
 const SESSION_MAP = [
-  { dayIndex: 0, label: 'Session 1' },
-  { dayIndex: 1, label: 'Session 2' },
-  { dayIndex: 3, label: 'Session 3' },
-  { dayIndex: 4, label: 'Session 4' },
-  { dayIndex: 5, label: 'Session 5' }
+  { dayIndex: 0, label: 'Session 1' },  // Day 1
+  { dayIndex: 1, label: 'Session 2' },  // Day 2
+  { dayIndex: 3, label: 'Session 3' },  // Day 4
+  { dayIndex: 4, label: 'Session 4' },  // Day 5
+  { dayIndex: 5, label: 'Session 5' }   // Day 6
 ];
 
 // Load saved username
@@ -930,7 +930,6 @@ function switchSession(index) {
 function renderSessionContent(sessionIndex) {
   const contentContainer = document.getElementById('workoutContent');
 
-  // Get the actual day index from session mapping
   const session = SESSION_MAP[sessionIndex];
   if (!session) {
     contentContainer.innerHTML = `
