@@ -187,7 +187,7 @@
     background: #b91c1c;
   }
 
-  /* ===== WEEK NAVIGATION TABS ===== */
+  /* ===== WEEK NAVIGATION ===== */
   .week-nav-container {
     width: 100%;
     margin-top: 8px;
@@ -236,33 +236,33 @@
     opacity: 0.9;
   }
 
-  /* ===== DAY TABS - SESSIONS ===== */
-  .day-tabs-container {
+  /* ===== SESSION TABS ===== */
+  .session-tabs-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    gap: 8px;
     width: 100%;
   }
 
-  .day-tab {
-    padding: 10px 4px;
+  .session-tab {
+    padding: 12px 4px;
     border: 2px solid #e5e7eb;
     border-radius: 10px;
     background: white;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     transition: all 0.2s;
     color: #1f2937;
     text-align: center;
   }
 
-  .day-tab:hover:not(.active) {
+  .session-tab:hover:not(.active) {
     background: #f3f4f6;
     border-color: #9ca3af;
   }
 
-  .day-tab.active {
+  .session-tab.active {
     background: #1e40af;
     color: white;
     border-color: #1e40af;
@@ -270,20 +270,9 @@
     z-index: 1;
   }
 
-  .day-tab .day-label {
+  .session-tab .session-icon {
     display: block;
-    font-size: 10px;
-    font-weight: normal;
-    opacity: 0.7;
-  }
-
-  .day-tab.active .day-label {
-    opacity: 0.9;
-  }
-
-  .day-tab .day-icon {
-    display: block;
-    font-size: 18px;
+    font-size: 20px;
     margin-top: 2px;
   }
 
@@ -318,7 +307,7 @@
     font-size: 20px;
   }
 
-  .workout-header .day-badge {
+  .workout-header .session-badge {
     background: rgba(255,255,255,0.15);
     padding: 4px 16px;
     border-radius: 20px;
@@ -579,16 +568,16 @@
 
   /* ===== RESPONSIVE ===== */
   @media (max-width: 600px) {
-    .day-tabs-container {
+    .session-tabs-container {
       grid-template-columns: repeat(5, 1fr);
       gap: 4px;
     }
-    .day-tab {
-      padding: 6px 2px;
-      font-size: 11px;
+    .session-tab {
+      padding: 8px 2px;
+      font-size: 12px;
     }
-    .day-tab .day-icon {
-      font-size: 14px;
+    .session-tab .session-icon {
+      font-size: 16px;
     }
     .exercise-grid { padding: 10px; }
     .exercise-image { height: 140px; }
@@ -598,7 +587,7 @@
   @media (max-width: 400px) {
     .exercise-grid { grid-template-columns: 1fr; }
     .inputs { grid-template-columns: 1fr; }
-    .day-tabs-container {
+    .session-tabs-container {
       grid-template-columns: repeat(3, 1fr);
     }
   }
@@ -625,7 +614,7 @@
     <div id="loginMessage" class="message"></div>
   </div>
 
-  <!-- ===== WEEK TABS ===== -->
+  <!-- ===== WEEK + SESSION TABS ===== -->
   <div id="weekContainer" class="week-container">
     <div class="week-header">
       <div class="user-info">
@@ -635,8 +624,8 @@
       <div class="week-nav-container">
         <!-- Week Tabs -->
         <div class="week-nav-tabs" id="weekTabs"></div>
-        <!-- Session Tabs (5 sessions) -->
-        <div class="day-tabs-container" id="dayTabs"></div>
+        <!-- Session Tabs (1-5) -->
+        <div class="session-tabs-container" id="sessionTabs"></div>
       </div>
     </div>
     <div id="workoutContent">
@@ -668,8 +657,17 @@ const STORAGE_KEY_USER = 'workout_username';
 let currentWorkoutData = [];
 let currentPipeline = [];
 let activeWeekIndex = 0;
-let activeDayIndex = 0;
+let activeSessionIndex = 0;
 let currentUsername = '';
+
+// Session mapping: Day 1,2,4,5,6 -> Session 1,2,3,4,5
+const SESSION_MAP = [
+  { dayIndex: 0, label: 'Session 1' },
+  { dayIndex: 1, label: 'Session 2' },
+  { dayIndex: 3, label: 'Session 3' },
+  { dayIndex: 4, label: 'Session 4' },
+  { dayIndex: 5, label: 'Session 5' }
+];
 
 // Load saved username
 const savedUsername = localStorage.getItem(STORAGE_KEY_USER);
@@ -791,7 +789,7 @@ async function login() {
     currentWorkoutData = result.sections;
     currentPipeline = result.pipeline;
     activeWeekIndex = 0;
-    activeDayIndex = 0;
+    activeSessionIndex = 0;
 
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('weekContainer').classList.add('visible');
@@ -813,7 +811,7 @@ function logout() {
   currentWorkoutData = [];
   currentPipeline = [];
   activeWeekIndex = 0;
-  activeDayIndex = 0;
+  activeSessionIndex = 0;
 
   document.getElementById('loginSection').style.display = 'block';
   document.getElementById('weekContainer').classList.remove('visible');
@@ -829,8 +827,8 @@ function logout() {
 // ============================================================
 function renderAllTabs() {
   renderWeekTabs();
-  renderDayTabs();
-  renderDayContent(activeDayIndex);
+  renderSessionTabs();
+  renderSessionContent(activeSessionIndex);
 }
 
 // ============================================================
@@ -850,7 +848,7 @@ function renderWeekTabs() {
     html += `
       <button class="week-tab ${isActive ? 'active' : ''}" onclick="switchWeek(${index})">
         ${week.weekLabel}
-        <span class="week-label">${week.days.length} days</span>
+        <span class="week-label">5 sessions</span>
       </button>
     `;
   });
@@ -859,39 +857,31 @@ function renderWeekTabs() {
 }
 
 // ============================================================
-// RENDER DAY TABS - ONLY 5 SESSIONS (Day 1,2,4,5,6)
+// RENDER SESSION TABS (Session 1-5)
 // ============================================================
-function renderDayTabs() {
-  const container = document.getElementById('dayTabs');
+function renderSessionTabs() {
+  const container = document.getElementById('sessionTabs');
   
   if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
     container.innerHTML = '';
     return;
   }
 
-  // Session mapping: Day 1,2,4,5,6 only (skip Day 3 and Day 7 = rest)
-  const sessionMap = [
-    { dayIndex: 0, label: 'Session 1' },
-    { dayIndex: 1, label: 'Session 2' },
-    { dayIndex: 3, label: 'Session 3' },
-    { dayIndex: 4, label: 'Session 4' },
-    { dayIndex: 5, label: 'Session 5' }
-  ];
-
   let html = '';
 
-  sessionMap.forEach(({ dayIndex, label }) => {
-    const isActive = dayIndex === activeDayIndex;
+  SESSION_MAP.forEach((session, index) => {
+    const isActive = index === activeSessionIndex;
+    const dayIndex = session.dayIndex;
     
     const daySection = currentWorkoutData[dayIndex] || { exercises: [] };
     const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
     const icon = hasWorkout ? '💪' : '📋';
 
     html += `
-      <button class="day-tab ${isActive ? 'active' : ''}" 
-              onclick="switchDay(${dayIndex})">
-        <span class="day-label">${label}</span>
-        <span class="day-icon">${icon}</span>
+      <button class="session-tab ${isActive ? 'active' : ''}" 
+              onclick="switchSession(${index})">
+        ${session.label}
+        <span class="session-icon">${icon}</span>
       </button>
     `;
   });
@@ -907,38 +897,53 @@ function switchWeek(index) {
   if (index >= currentPipeline.length) return;
   
   activeWeekIndex = index;
-  activeDayIndex = 0;
+  activeSessionIndex = 0;
   
   const weekTabs = document.querySelectorAll('.week-tab');
   weekTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index);
   });
   
-  renderDayTabs();
-  renderDayContent(activeDayIndex);
+  renderSessionTabs();
+  renderSessionContent(activeSessionIndex);
 }
 
 // ============================================================
-// SWITCH DAY
+// SWITCH SESSION
 // ============================================================
-function switchDay(index) {
-  if (index === activeDayIndex) return;
+function switchSession(index) {
+  if (index === activeSessionIndex) return;
   
-  activeDayIndex = index;
+  activeSessionIndex = index;
   
-  const dayTabs = document.querySelectorAll('.day-tab');
-  dayTabs.forEach((tab, i) => {
+  const sessionTabs = document.querySelectorAll('.session-tab');
+  sessionTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index);
   });
   
-  renderDayContent(index);
+  renderSessionContent(index);
 }
 
 // ============================================================
-// RENDER DAY CONTENT
+// RENDER SESSION CONTENT
 // ============================================================
-function renderDayContent(dayIndex) {
+function renderSessionContent(sessionIndex) {
   const contentContainer = document.getElementById('workoutContent');
+
+  // Get the actual day index from session mapping
+  const session = SESSION_MAP[sessionIndex];
+  if (!session) {
+    contentContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <h3>No Session Data</h3>
+        <p>Please select a session</p>
+      </div>
+    `;
+    return;
+  }
+
+  const dayIndex = session.dayIndex;
 
   if (!currentWorkoutData || currentWorkoutData.length === 0 || dayIndex >= currentWorkoutData.length) {
     contentContainer.innerHTML = `
@@ -955,7 +960,7 @@ function renderDayContent(dayIndex) {
   if (!section || !section.exercises || section.exercises.length === 0) {
     contentContainer.innerHTML = `
       <div class="no-exercises">
-        <p>📋 No exercises scheduled for this session</p>
+        <p>📋 No exercises scheduled for ${session.label}</p>
       </div>
     `;
     return;
@@ -970,7 +975,7 @@ function renderDayContent(dayIndex) {
           <h2>${section.title || 'Workout'}</h2>
           <span class="major-badge">🏷️ ${major}</span>
         </div>
-        <span class="day-badge">📅 ${section.title}</span>
+        <span class="session-badge">${session.label}</span>
       </div>
       <div class="exercise-grid">
   `;
