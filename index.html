@@ -231,17 +231,60 @@
     background: #b91c1c;
   }
 
-  .week-header h2 {
-    margin: 0;
-    font-size: 20px;
-    color: #111827;
+  /* ===== WEEK NAVIGATION TABS ===== */
+  .week-nav-container {
+    width: 100%;
+    margin-top: 8px;
   }
 
-  .week-nav {
+  .week-nav-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 10px;
+  }
+
+  .week-tab {
+    padding: 8px 20px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+    color: #6b7280;
+  }
+
+  .week-tab:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+
+  .week-tab.active {
+    background: #1e40af;
+    color: white;
+    border-color: #1e40af;
+  }
+
+  .week-tab .week-label {
+    display: block;
+    font-size: 11px;
+    font-weight: normal;
+    opacity: 0.7;
+  }
+
+  .week-tab.active .week-label {
+    opacity: 0.9;
+  }
+
+  /* ===== DAY TABS ===== */
+  .day-tabs-container {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-top: 8px;
   }
 
   .day-tab {
@@ -271,8 +314,8 @@
   }
 
   .day-tab.rest {
-    opacity: 0.5;
-    cursor: default;
+    opacity: 0.4;
+    cursor: not-allowed;
     background: #f3f4f6;
     border-color: #e5e7eb;
   }
@@ -589,7 +632,8 @@
     .container { padding: 12px; }
     .exercise-grid { padding: 10px; }
     .exercise-image { height: 140px; }
-    .week-nav { gap: 4px; }
+    .week-nav-tabs { gap: 4px; }
+    .week-tab { padding: 6px 14px; font-size: 13px; }
     .day-tab { padding: 8px 12px; font-size: 12px; min-width: 50px; }
     .login-section { padding: 24px; margin: 20px; }
     .details { grid-template-columns: 1fr 1fr 1fr; }
@@ -641,9 +685,11 @@
         <span class="username-badge" id="userDisplay">👤 username</span>
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
       </div>
-      <div style="flex:1; min-width:100%;">
-        <h2 id="weekTitle">Week 1</h2>
-        <div class="week-nav" id="dayTabs"></div>
+      <div class="week-nav-container">
+        <!-- Week Tabs -->
+        <div class="week-nav-tabs" id="weekTabs"></div>
+        <!-- Day Tabs -->
+        <div class="day-tabs-container" id="dayTabs"></div>
       </div>
     </div>
     <div id="workoutContent">
@@ -670,6 +716,7 @@ const STORAGE_KEY_API = 'user_api_url';
 const STORAGE_KEY_USER = 'workout_username';
 let currentWorkoutData = [];
 let currentPipeline = [];
+let activeWeekIndex = 0;
 let activeDayIndex = 0;
 let currentUsername = '';
 let apiUrl = '';
@@ -686,7 +733,6 @@ if (savedApiUrl) {
 if (savedUsername) {
   document.getElementById('usernameInput').value = savedUsername;
   currentUsername = savedUsername;
-  // Auto-login after page load
   window.addEventListener('load', function() {
     if (savedApiUrl && savedUsername) {
       setTimeout(login, 500);
@@ -796,7 +842,6 @@ async function login() {
     return;
   }
 
-  // Check if API URL is set
   if (!apiUrl) {
     showLoginMessage('Please configure your API URL first (click the link below)', 'error');
     document.getElementById('apiSetup').classList.add('visible');
@@ -825,15 +870,15 @@ async function login() {
 
     currentWorkoutData = result.sections;
     currentPipeline = result.pipeline;
+    activeWeekIndex = 0;
     activeDayIndex = 0;
 
-    // Show workout UI
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('weekContainer').classList.add('visible');
     document.getElementById('saveBar').classList.add('visible');
     document.getElementById('userDisplay').textContent = '👤 ' + username;
 
-    renderWeekTabs();
+    renderAllTabs();
     showLoginMessage('✅ Welcome ' + username + '!', 'success');
   } else {
     showLoginMessage('Error loading data: ' + (result?.message || 'Unknown error'), 'error');
@@ -847,6 +892,7 @@ function logout() {
   currentUsername = '';
   currentWorkoutData = [];
   currentPipeline = [];
+  activeWeekIndex = 0;
   activeDayIndex = 0;
 
   document.getElementById('loginSection').style.display = 'block';
@@ -859,11 +905,134 @@ function logout() {
 }
 
 // ============================================================
+// RENDER ALL TABS (Weeks + Days)
+// ============================================================
+function renderAllTabs() {
+  renderWeekTabs();
+  renderDayTabs();
+  renderDayContent(activeDayIndex);
+}
+
+// ============================================================
+// RENDER WEEK TABS
+// ============================================================
+function renderWeekTabs() {
+  const container = document.getElementById('weekTabs');
+  
+  if (!currentPipeline || currentPipeline.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  currentPipeline.forEach((week, index) => {
+    const isActive = index === activeWeekIndex;
+    html += `
+      <button class="week-tab ${isActive ? 'active' : ''}" onclick="switchWeek(${index})">
+        ${week.weekLabel}
+        <span class="week-label">${week.days.length} days</span>
+      </button>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// RENDER DAY TABS
+// ============================================================
+function renderDayTabs() {
+  const container = document.getElementById('dayTabs');
+  
+  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const week = currentPipeline[activeWeekIndex];
+  
+  if (!week || !week.days) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  week.days.forEach((day, index) => {
+    const isRest = day.type === 'rest';
+    const isActive = index === activeDayIndex;
+    const dayNum = index + 1;
+    
+    // Check if this day has exercises
+    const dayData = currentWorkoutData[index] || { exercises: [] };
+    const hasWorkout = dayData.exercises && dayData.exercises.length > 0;
+    
+    const icon = isRest ? '😴' : (hasWorkout ? '💪' : '📋');
+
+    html += `
+      <button class="day-tab ${isActive ? 'active' : ''} ${isRest ? 'rest' : ''}" 
+              onclick="${isRest ? '' : 'switchDay(' + index + ')'}" 
+              ${isRest ? 'disabled' : ''}>
+        <span class="day-label">Day ${dayNum}</span>
+        <span class="day-icon">${icon}</span>
+      </button>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// SWITCH WEEK
+// ============================================================
+function switchWeek(index) {
+  if (index === activeWeekIndex) return;
+  if (index >= currentPipeline.length) return;
+  
+  activeWeekIndex = index;
+  activeDayIndex = 0;
+  
+  // Update week tabs
+  const weekTabs = document.querySelectorAll('.week-tab');
+  weekTabs.forEach((tab, i) => {
+    tab.classList.toggle('active', i === index);
+  });
+  
+  renderDayTabs();
+  renderDayContent(activeDayIndex);
+}
+
+// ============================================================
+// SWITCH DAY
+// ============================================================
+function switchDay(index) {
+  if (index === activeDayIndex) return;
+  
+  // Check if it's a rest day
+  if (currentPipeline && currentPipeline.length > 0 && activeWeekIndex < currentPipeline.length) {
+    const week = currentPipeline[activeWeekIndex];
+    if (week.days[index] && week.days[index].type === 'rest') {
+      return;
+    }
+  }
+  
+  activeDayIndex = index;
+  
+  // Update day tabs
+  const dayTabs = document.querySelectorAll('.day-tab');
+  dayTabs.forEach((tab, i) => {
+    tab.classList.toggle('active', i === index);
+  });
+  
+  renderDayContent(index);
+}
+
+// ============================================================
 // RENDER DAY CONTENT
 // ============================================================
 function renderDayContent(dayIndex) {
   const contentContainer = document.getElementById('workoutContent');
 
+  // Check if data exists for this day
   if (!currentWorkoutData || currentWorkoutData.length === 0 || dayIndex >= currentWorkoutData.length) {
     contentContainer.innerHTML = `
       <div class="empty-state">
@@ -895,7 +1064,7 @@ function renderDayContent(dayIndex) {
           <h2>${section.title || 'Workout'}</h2>
           <span class="major-badge">🏷️ ${major}</span>
         </div>
-        <span class="day-badge">📅 ${section.title}</span>
+        <span class="day-badge">📅 Day ${dayIndex + 1}</span>
       </div>
       <div class="exercise-grid">
   `;
@@ -957,65 +1126,6 @@ function renderDayContent(dayIndex) {
 }
 
 // ============================================================
-// RENDER WEEK TABS
-// ============================================================
-function renderWeekTabs() {
-  const tabsContainer = document.getElementById('dayTabs');
-
-  if (!currentPipeline || currentPipeline.length === 0 || !currentWorkoutData || currentWorkoutData.length === 0) {
-    return;
-  }
-
-  const week = currentPipeline[0];
-  document.getElementById('weekTitle').textContent = week.weekLabel || 'Week 1';
-
-  let tabsHtml = '';
-  week.days.forEach((day, index) => {
-    const isRest = day.type === 'rest';
-    const isActive = index === activeDayIndex;
-    const dayNum = index + 1;
-    const hasWorkout = currentWorkoutData[index] && currentWorkoutData[index].exercises && currentWorkoutData[index].exercises.length > 0;
-
-    const icon = isRest ? '😴' : (hasWorkout ? '💪' : '📋');
-
-    tabsHtml += `
-      <button class="day-tab ${isActive ? 'active' : ''} ${isRest ? 'rest' : ''}" 
-              onclick="switchDay(${index})" 
-              ${isRest ? 'disabled' : ''}>
-        <span class="day-label">Day ${dayNum}</span>
-        <span class="day-icon">${icon}</span>
-      </button>
-    `;
-  });
-
-  tabsContainer.innerHTML = tabsHtml;
-  renderDayContent(activeDayIndex);
-}
-
-// ============================================================
-// SWITCH DAY
-// ============================================================
-function switchDay(index) {
-  if (index >= currentWorkoutData.length) return;
-
-  if (currentPipeline && currentPipeline.length > 0) {
-    const week = currentPipeline[0];
-    if (week.days[index] && week.days[index].type === 'rest') {
-      return;
-    }
-  }
-
-  activeDayIndex = index;
-
-  const tabs = document.querySelectorAll('.day-tab');
-  tabs.forEach((tab, i) => {
-    tab.classList.toggle('active', i === index);
-  });
-
-  renderDayContent(index);
-}
-
-// ============================================================
 // SAVE PROGRESS
 // ============================================================
 function saveProgress() {
@@ -1025,7 +1135,6 @@ function saveProgress() {
   }
 
   let savedCount = 0;
-  let totalWithData = 0;
 
   currentWorkoutData.forEach((section, sectionIndex) => {
     if (!section.exercises) return;
@@ -1035,7 +1144,6 @@ function saveProgress() {
       const achieved = document.getElementById(`achieved-${id}`)?.value || '';
 
       if (weight || achieved) {
-        totalWithData++;
         localStorage.setItem(`weight-${id}`, weight);
         localStorage.setItem(`achieved-${id}`, achieved);
         savedCount++;
@@ -1058,7 +1166,6 @@ function showLoginMessage(text, type) {
   el.textContent = text;
   el.className = 'message ' + type;
   el.style.display = 'block';
-
   if (type === 'success' || type === 'info') {
     setTimeout(() => { el.style.display = 'none'; }, 5000);
   }
@@ -1069,7 +1176,6 @@ function showSaveMessage(text, type) {
   el.textContent = text;
   el.className = 'save-message ' + type;
   el.style.display = 'inline';
-
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
@@ -1077,7 +1183,6 @@ function showSaveMessage(text, type) {
 // KEYBOARD SHORTCUTS
 // ============================================================
 document.addEventListener('keydown', function(e) {
-  // Ctrl+S to save
   if (e.ctrlKey && e.key === 's') {
     e.preventDefault();
     saveProgress();
