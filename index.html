@@ -983,7 +983,7 @@ function switchDay(index) {
 }
 
 // ============================================================
-// RENDER DAY CONTENT
+// RENDER DAY CONTENT - FIXED: Force text format for reps
 // ============================================================
 function renderDayContent(dayIndex) {
   const contentContainer = document.getElementById('workoutContent');
@@ -1031,6 +1031,11 @@ function renderDayContent(dayIndex) {
     const savedWeight = localStorage.getItem(`weight-${id}`) || '';
     const savedAchieved = localStorage.getItem(`achieved-${id}`) || '';
 
+    // FORCE TEXT FORMAT for reps and rest to prevent date conversion
+    const repsValue = exercise.reps || '—';
+    const restValue = exercise.rest || '—';
+    const setsValue = exercise.sets || '—';
+
     html += `
       <div class="exercise-card">
         <div class="exercise-image">
@@ -1051,15 +1056,15 @@ function renderDayContent(dayIndex) {
         <div class="details">
           <div class="detail">
             <span class="detail-label">Sets</span>
-            <span class="detail-value">${exercise.sets || '—'}</span>
+            <span class="detail-value">${setsValue}</span>
           </div>
           <div class="detail">
             <span class="detail-label">Reps</span>
-            <span class="detail-value">${exercise.reps || '—'}</span>
+            <span class="detail-value">${repsValue}</span>
           </div>
           <div class="detail">
             <span class="detail-label">Rest</span>
-            <span class="detail-value">${exercise.rest || '—'}</span>
+            <span class="detail-value">${restValue}</span>
           </div>
         </div>
 
