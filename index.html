@@ -454,6 +454,8 @@
   .detail-value {
     font-weight: bold;
     font-size: 14px;
+    /* Force text format to prevent date conversion */
+    white-space: nowrap;
   }
 
   .inputs {
@@ -681,7 +683,7 @@
 
 <script>
 // ============================================================
-// HARDCODED API URL (Same for both pages)
+// HARDCODED API URL
 // ============================================================
 const API_URL = 'https://script.google.com/macros/s/AKfycbwNCZAjL8vG3hoO_eFNbeRV4Qq1m71GZJtgCvwJ4rpc73Bpm3JQ3epxl93AnRpqpX1gOA/exec';
 
@@ -883,7 +885,7 @@ function renderWeekTabs() {
 }
 
 // ============================================================
-// RENDER DAY TABS - ALL 7 DAYS
+// RENDER DAY TABS - ALL 7 DAYS WITH CORRECT REST DAYS
 // ============================================================
 function renderDayTabs() {
   const container = document.getElementById('dayTabs');
@@ -900,26 +902,28 @@ function renderDayTabs() {
     return;
   }
 
-  // IMPORTANT: Show ALL days (1-7), not just the ones in the data
+  // Show ALL 7 days
   const totalDays = 7;
   let html = '';
 
   for (let i = 0; i < totalDays; i++) {
     const dayNum = i + 1;
-    const dayData = week.days[i] || { label: 'Day ' + dayNum, type: 'rest' };
-    const isRest = dayData.type === 'rest';
+    
+    // Check if this day exists in the pipeline data
+    const dayData = week.days[i] || null;
+    const isRest = dayData ? dayData.type === 'rest' : false;
     const isActive = i === activeDayIndex;
     
-    // Check if this day has exercises in the data
+    // Check if this day has exercises
     const daySection = currentWorkoutData[i] || { exercises: [] };
     const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
     
-    // Icon: 😴 for rest, 💪 for workout with exercises, 📋 for empty workout day
-    let icon = '📋';
+    // Determine icon
+    let icon = '📋'; // Empty/no data
     if (isRest) {
-      icon = '😴';
+      icon = '😴'; // Rest day
     } else if (hasWorkout) {
-      icon = '💪';
+      icon = '💪'; // Workout day with exercises
     }
 
     html += `
@@ -945,7 +949,6 @@ function switchWeek(index) {
   activeWeekIndex = index;
   activeDayIndex = 0;
   
-  // Update week tabs
   const weekTabs = document.querySelectorAll('.week-tab');
   weekTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index);
@@ -971,7 +974,6 @@ function switchDay(index) {
   
   activeDayIndex = index;
   
-  // Update day tabs
   const dayTabs = document.querySelectorAll('.day-tab');
   dayTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index);
