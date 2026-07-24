@@ -387,45 +387,43 @@
 </div>
 
 <script>
-// ============================================================
-// HARDCODED API URL
-// ============================================================
 
 // ============================================================
-// API URL
+// API CONFIGURATION
 // ============================================================
 const API_URL =
 'https://script.google.com/macros/s/AKfycbwptW5KKJvwNR3bfSzQ63zs30hJNFXBO0-cEFdk43Br7nR3c2dO84wXugq4AzGYVBMOXQ/exec';
 
+const STORAGE_KEY_USER = 'workout_username';
 
 // ============================================================
-// STORAGE
-// ============================================================
-const STORAGE_KEY_USER =
-'workout_username';
-
-
-// ============================================================
-// GLOBAL DATA
+// GLOBAL VARIABLES
 // ============================================================
 let currentWorkoutData = [];
-
 let currentPipeline = [];
-
 let activeWeekIndex = 0;
-
 let activeSessionIndex = 0;
-
 let currentUsername = '';
 
 
 // ============================================================
-// FALLBACK IMAGE
+// NORMALIZE TEXT
+// Used to safely compare Week / Day / Major values
+// ============================================================
+function normalizeText(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+
+// ============================================================
+// GET FALLBACK IMAGE
 // ============================================================
 function getFallbackImage(exerciseName) {
 
   const colors = [
-
     '#FF6B6B',
     '#4ECDC4',
     '#45B7D1',
@@ -435,174 +433,305 @@ function getFallbackImage(exerciseName) {
     '#98D8C8',
     '#F7DC6F',
     '#BB8FCE',
-    '#85C1E9'
-
+    '#85C1E9',
+    '#F8C471',
+    '#82E0AA',
+    '#F1948A',
+    '#85929E',
+    '#73C6B6',
+    '#E59866',
+    '#AF7AC5',
+    '#5DADE2',
+    '#58D68D',
+    '#F5B7B1'
   ];
 
   let hash = 0;
 
-  for (
-    let i = 0;
-    i < exerciseName.length;
-    i++
-  ) {
-
+  for (let i = 0; i < exerciseName.length; i++) {
     hash =
       exerciseName.charCodeAt(i) +
       ((hash << 5) - hash);
-
   }
 
   const color =
-    colors[
-      Math.abs(hash) %
-      colors.length
-    ];
-
+    colors[Math.abs(hash) % colors.length];
 
   const firstLetter =
-    exerciseName
-      ? exerciseName
-          .charAt(0)
-          .toUpperCase()
-      : '?';
-
+    exerciseName.charAt(0).toUpperCase();
 
   return `data:image/svg+xml,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="400"
+         height="300"
+         viewBox="0 0 400 300">
 
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="400"
-      height="300"
-    >
+      <rect width="400"
+            height="300"
+            fill="${color}"
+            rx="10"/>
 
-      <rect
-        width="400"
-        height="300"
-        fill="${color}"
-      />
-
-      <text
-        x="200"
-        y="130"
-        font-family="Arial"
-        font-size="90"
-        font-weight="bold"
-        fill="white"
-        text-anchor="middle"
-        opacity="0.3"
-      >
+      <text x="200"
+            y="115"
+            font-family="Arial"
+            font-size="80"
+            font-weight="bold"
+            fill="white"
+            text-anchor="middle"
+            opacity="0.3">
         ${firstLetter}
       </text>
 
-      <text
-        x="200"
-        y="190"
-        font-family="Arial"
-        font-size="18"
-        fill="white"
-        text-anchor="middle"
-      >
-        ${exerciseName}
+      <text x="200"
+            y="160"
+            font-family="Arial"
+            font-size="28"
+            font-weight="bold"
+            fill="white"
+            text-anchor="middle">
+        💪
+      </text>
+
+      <text x="200"
+            y="200"
+            font-family="Arial"
+            font-size="16"
+            fill="white"
+            text-anchor="middle"
+            opacity="0.95">
+        ${exerciseName.length > 25
+          ? exerciseName.substring(0, 25) + '...'
+          : exerciseName}
       </text>
 
     </svg>
-
   `)}`;
-
 }
 
 
 // ============================================================
-// YOUTUBE THUMBNAIL
+// GET YOUTUBE VIDEO ID
 // ============================================================
-function getYouTubeThumbnail(videoUrl) {
+function getYouTubeVideoId(videoUrl) {
 
-  if (!videoUrl) {
-    return null;
-  }
+  if (!videoUrl) return null;
 
-
-  let videoId = null;
-
+  const url =
+    String(videoUrl).trim();
 
   let match;
 
-
-  match =
-    videoUrl.match(
-      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
-    );
+  // youtube.com/watch?v=XXXXXXXXXXX
+  match = url.match(
+    /youtube\.com\/watch\?[^#]*v=([a-zA-Z0-9_-]{11})/
+  );
 
   if (match) {
-
-    videoId =
-      match[1];
-
+    return match[1];
   }
 
+  // youtu.be/XXXXXXXXXXX
+  match = url.match(
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/
+  );
 
-  if (!videoId) {
-
-    match =
-      videoUrl.match(
-        /[?&]v=([a-zA-Z0-9_-]{11})/
-      );
-
-    if (match) {
-
-      videoId =
-        match[1];
-
-    }
-
+  if (match) {
+    return match[1];
   }
 
+  // youtube.com/shorts/XXXXXXXXXXX
+  match = url.match(
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+  );
 
-  if (!videoId) {
-
-    match =
-      videoUrl.match(
-        /youtu\.be\/([a-zA-Z0-9_-]{11})/
-      );
-
-    if (match) {
-
-      videoId =
-        match[1];
-
-    }
-
+  if (match) {
+    return match[1];
   }
 
+  // youtube.com/embed/XXXXXXXXXXX
+  match = url.match(
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+  );
 
-  if (!videoId) {
-
-    match =
-      videoUrl.match(
-        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
-      );
-
-    if (match) {
-
-      videoId =
-        match[1];
-
-    }
-
+  if (match) {
+    return match[1];
   }
 
+  return null;
+}
+
+
+// ============================================================
+// GET YOUTUBE THUMBNAIL
+// ============================================================
+function getYouTubeThumbnail(videoUrl) {
+
+  const videoId =
+    getYouTubeVideoId(videoUrl);
 
   if (!videoId) {
-
     return null;
-
   }
 
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+}
 
-  return
-    `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
+// ============================================================
+// GET WORKOUT SECTION FOR EXACT WEEK + DAY
+//
+// THIS IS THE IMPORTANT FIX.
+//
+// We do NOT use:
+// currentWorkoutData[dayIndex]
+//
+// Instead we find the exact section belonging to:
+// Week + Day
+//
+// This prevents Day 1 from displaying Day 1 + Day 2.
+// ============================================================
+function getSectionForDay(weekLabel, dayLabel) {
+
+  if (!currentWorkoutData ||
+      currentWorkoutData.length === 0) {
+    return null;
+  }
+
+  const targetWeek =
+    normalizeText(weekLabel);
+
+  const targetDay =
+    normalizeText(dayLabel);
+
+  // First: exact Week + Day match
+  let section =
+    currentWorkoutData.find(item => {
+
+      return normalizeText(item.week) === targetWeek &&
+             normalizeText(item.day) === targetDay;
+
+    });
+
+  if (section) {
+    return section;
+  }
+
+  // ----------------------------------------------------------
+  // BACKWARD COMPATIBILITY
+  //
+  // If old Apps Script does not return week/day on sections,
+  // try to match by title/day label.
+  // ----------------------------------------------------------
+  section =
+    currentWorkoutData.find(item => {
+
+      return normalizeText(item.title) === targetDay ||
+             normalizeText(item.day) === targetDay;
+
+    });
+
+  return section || null;
+}
+
+
+// ============================================================
+// BUILD SESSION MAP
+// ============================================================
+function buildSessionMap() {
+
+  if (!currentPipeline ||
+      currentPipeline.length === 0 ||
+      activeWeekIndex >= currentPipeline.length) {
+
+    return [];
+  }
+
+  const week =
+    currentPipeline[activeWeekIndex];
+
+  if (!week || !week.days) {
+    return [];
+  }
+
+  const sessionMap = [];
+
+  let sessionCounter = 1;
+
+  week.days.forEach((day, index) => {
+
+    const isRest =
+      String(day.type || '').toLowerCase() === 'rest';
+
+    if (isRest) {
+      return;
+    }
+
+    const section =
+      getSectionForDay(
+        week.weekLabel,
+        day.label
+      );
+
+    const hasExercises =
+      section &&
+      section.exercises &&
+      section.exercises.length > 0;
+
+    sessionMap.push({
+
+      dayIndex: index,
+
+      label:
+        'Session ' + sessionCounter,
+
+      hasExercises:
+        hasExercises,
+
+      dayName:
+        day.label,
+
+      weekLabel:
+        week.weekLabel,
+
+      section:
+        section
+
+    });
+
+    sessionCounter++;
+
+  });
+
+  return sessionMap;
+}
+
+
+// ============================================================
+// LOAD SAVED USER
+// ============================================================
+const savedUsername =
+  localStorage.getItem(STORAGE_KEY_USER);
+
+if (savedUsername) {
+
+  document.getElementById(
+    'usernameInput'
+  ).value = savedUsername;
+
+  currentUsername =
+    savedUsername;
+
+  window.addEventListener(
+    'load',
+    function() {
+
+      setTimeout(
+        login,
+        500
+      );
+
+    }
+  );
 }
 
 
@@ -619,12 +748,10 @@ async function callApi(
     const params =
       new URLSearchParams();
 
-
     params.append(
       'action',
       action
     );
-
 
     Object.keys(data).forEach(
       key => {
@@ -645,22 +772,20 @@ async function callApi(
       }
     );
 
-
     const url =
       API_URL +
       '?' +
       params.toString();
-
 
     console.log(
       'API Request:',
       url
     );
 
-
     const response =
-      await fetch(url);
-
+      await fetch(url, {
+        method: 'GET'
+      });
 
     if (!response.ok) {
 
@@ -671,19 +796,15 @@ async function callApi(
 
     }
 
-
     const result =
       await response.json();
-
 
     console.log(
       'API Response:',
       result
     );
 
-
     return result;
-
 
   } catch (error) {
 
@@ -692,13 +813,11 @@ async function callApi(
       error
     );
 
-
     showLoginMessage(
       '❌ Error: ' +
       error.message,
       'error'
     );
-
 
     return null;
 
@@ -714,12 +833,9 @@ async function login() {
 
   const username =
     document
-      .getElementById(
-        'usernameInput'
-      )
+      .getElementById('usernameInput')
       .value
       .trim();
-
 
   if (!username) {
 
@@ -729,39 +845,30 @@ async function login() {
     );
 
     return;
-
   }
-
 
   currentUsername =
     username;
-
 
   localStorage.setItem(
     STORAGE_KEY_USER,
     username
   );
 
-
   const btn =
     document.getElementById(
       'loginBtn'
     );
 
-
-  btn.disabled =
-    true;
-
+  btn.disabled = true;
 
   btn.textContent =
     '⏳ Loading...';
-
 
   showLoginMessage(
     'Loading your workout plan...',
     'info'
   );
-
 
   const result =
     await callApi(
@@ -772,14 +879,10 @@ async function login() {
       }
     );
 
-
-  btn.disabled =
-    false;
-
+  btn.disabled = false;
 
   btn.textContent =
     '📥 Load My Workout';
-
 
   if (
     !result ||
@@ -787,114 +890,118 @@ async function login() {
   ) {
 
     showLoginMessage(
-
-      '❌ Error loading data: ' +
+      'Error loading data: ' +
       (
         result?.message ||
         'Unknown error'
       ),
-
       'error'
-
     );
 
     return;
-
   }
 
 
-  // ==========================================================
-  // IMPORTANT
-  //
-  // We now use result.weeks.
-  //
-  // NOT result.sections.
-  // ==========================================================
+  // ----------------------------------------------------------
+  // STORE DATA
+  // ----------------------------------------------------------
+  currentWorkoutData =
+    Array.isArray(result.sections)
+      ? result.sections
+      : [];
+
+  currentPipeline =
+    Array.isArray(result.pipeline)
+      ? result.pipeline
+      : [];
+
+
+  console.log(
+    'Workout Sections:',
+    currentWorkoutData
+  );
+
+  console.log(
+    'Pipeline:',
+    currentPipeline
+  );
+
 
   if (
-    !result.weeks ||
-    result.weeks.length === 0
+    currentPipeline.length === 0
   ) {
 
     showLoginMessage(
-
-      'No workout data found for this user.',
-
+      'No workout pipeline found.',
       'error'
-
     );
 
     return;
-
   }
 
 
-  currentWorkoutData =
-    result.weeks;
-
-
-  currentPipeline =
-    result.pipeline ||
-    [];
-
-
-  activeWeekIndex =
-    0;
-
-
-  activeSessionIndex =
-    0;
-
-
-  document
-    .getElementById(
-      'loginSection'
-    )
-    .style
-    .display =
-    'none';
-
-
-  document
-    .getElementById(
-      'weekContainer'
-    )
-    .classList
-    .add(
-      'visible'
+  // ----------------------------------------------------------
+  // CHECK WORKOUT DATA
+  // ----------------------------------------------------------
+  const hasExercises =
+    currentWorkoutData.some(
+      section =>
+        section &&
+        Array.isArray(section.exercises) &&
+        section.exercises.length > 0
     );
 
+  if (!hasExercises) {
 
-  document
-    .getElementById(
-      'saveBar'
-    )
-    .classList
-    .add(
-      'visible'
+    showLoginMessage(
+      '❌ No workout exercises found. Please check your Excel structure.',
+      'error'
     );
 
+    return;
+  }
 
-  document
-    .getElementById(
-      'userDisplay'
-    )
-    .textContent =
+
+  // ----------------------------------------------------------
+  // RESET NAVIGATION
+  // ----------------------------------------------------------
+  activeWeekIndex = 0;
+
+  activeSessionIndex = 0;
+
+
+  // ----------------------------------------------------------
+  // SHOW UI
+  // ----------------------------------------------------------
+  document.getElementById(
+    'loginSection'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'weekContainer'
+  ).classList.add('visible');
+
+  document.getElementById(
+    'saveBar'
+  ).classList.add('visible');
+
+  document.getElementById(
+    'userDisplay'
+  ).textContent =
     '👤 ' +
     username;
 
 
+  // ----------------------------------------------------------
+  // RENDER
+  // ----------------------------------------------------------
   renderAllTabs();
 
-
   showLoginMessage(
-
     '✅ Welcome ' +
     username +
     '!',
-
     'success'
-
   );
 
 }
@@ -914,65 +1021,41 @@ function logout() {
   currentPipeline =
     [];
 
-
   activeWeekIndex =
     0;
-
 
   activeSessionIndex =
     0;
 
-
-  document
-    .getElementById(
-      'loginSection'
-    )
-    .style
-    .display =
+  document.getElementById(
+    'loginSection'
+  ).style.display =
     'block';
 
+  document.getElementById(
+    'weekContainer'
+  ).classList.remove(
+    'visible'
+  );
 
-  document
-    .getElementById(
-      'weekContainer'
-    )
-    .classList
-    .remove(
-      'visible'
-    );
+  document.getElementById(
+    'saveBar'
+  ).classList.remove(
+    'visible'
+  );
 
-
-  document
-    .getElementById(
-      'saveBar'
-    )
-    .classList
-    .remove(
-      'visible'
-    );
-
-
-  document
-    .getElementById(
-      'usernameInput'
-    )
-    .value =
+  document.getElementById(
+    'usernameInput'
+  ).value =
     '';
 
-
-  document
-    .getElementById(
-      'usernameInput'
-    )
-    .focus();
-
+  document.getElementById(
+    'usernameInput'
+  ).focus();
 
   showLoginMessage(
-
     'Logged out successfully',
-
     'success'
-
   );
 
 }
@@ -1004,164 +1087,56 @@ function renderWeekTabs() {
       'weekTabs'
     );
 
-
   if (
-    !currentWorkoutData ||
-    currentWorkoutData.length === 0
+    !currentPipeline ||
+    currentPipeline.length === 0
   ) {
 
     container.innerHTML =
       '';
 
     return;
-
   }
-
 
   let html =
     '';
 
+  currentPipeline.forEach(
+    (week, index) => {
 
-  currentWorkoutData
-    .forEach(
-      (week, index) => {
+      const isActive =
+        index === activeWeekIndex;
 
-        const isActive =
-          index ===
-          activeWeekIndex;
+      const sessionCount =
+        week.days
+          ? week.days.filter(
+              day =>
+                String(day.type || '')
+                  .toLowerCase() !== 'rest'
+            ).length
+          : 0;
 
+      html += `
 
-        const sessionCount =
-          week.days
-            ? week.days.filter(
-                day =>
-                  day.exercises &&
-                  day.exercises.length > 0
-              ).length
-            : 0;
+        <button
+          class="week-tab ${isActive ? 'active' : ''}"
+          onclick="switchWeek(${index})">
 
+          ${week.weekLabel}
 
-        html += `
+          <span class="week-label">
+            ${sessionCount} sessions
+          </span>
 
-          <button
-            class="week-tab ${
-              isActive
-                ? 'active'
-                : ''
-            }"
-            onclick="switchWeek(${index})"
-          >
+        </button>
 
-            ${week.weekLabel}
-
-            <span class="week-label">
-
-              ${sessionCount}
-              sessions
-
-            </span>
-
-          </button>
-
-        `;
-
-      }
-    );
-
-
-  container.innerHTML =
-    html;
-
-}
-
-
-// ============================================================
-// BUILD SESSION MAP
-//
-// IMPORTANT:
-//
-// This is now built ONLY from the ACTIVE WEEK.
-//
-// Session 1 = first workout day of current week.
-// Session 2 = second workout day of current week.
-//
-// No mixing between weeks.
-// ============================================================
-function buildSessionMap() {
-
-  if (
-    !currentWorkoutData ||
-    !currentWorkoutData[
-      activeWeekIndex
-    ]
-  ) {
-
-    return [];
-
-  }
-
-
-  const week =
-    currentWorkoutData[
-      activeWeekIndex
-    ];
-
-
-  if (
-    !week.days
-  ) {
-
-    return [];
-
-  }
-
-
-  const sessionMap =
-    [];
-
-
-  let sessionCounter =
-    1;
-
-
-  week.days.forEach(
-    (day, dayIndex) => {
-
-      if (
-        day.exercises &&
-        day.exercises.length > 0
-      ) {
-
-        sessionMap.push({
-
-          dayIndex:
-            dayIndex,
-
-          label:
-            'Session ' +
-            sessionCounter,
-
-          dayName:
-            day.day,
-
-          major:
-            day.major,
-
-          exercises:
-            day.exercises
-
-        });
-
-
-        sessionCounter++;
-
-      }
+      `;
 
     }
   );
 
-
-  return sessionMap;
+  container.innerHTML =
+    html;
 
 }
 
@@ -1176,69 +1151,45 @@ function renderSessionTabs() {
       'sessionTabs'
     );
 
-
   const sessionMap =
     buildSessionMap();
-
 
   if (
     sessionMap.length === 0
   ) {
 
     container.innerHTML =
-
-      '<p style="color:#6b7280;text-align:center;width:100%;">' +
-
-      'No workout sessions found' +
-
-      '</p>';
+      '<p style="color:#6b7280;text-align:center;width:100%;">No workout sessions found</p>';
 
     return;
-
   }
-
 
   let html =
     '';
-
 
   sessionMap.forEach(
     (session, index) => {
 
       const isActive =
-        index ===
-        activeSessionIndex;
+        index === activeSessionIndex;
 
+      const icon =
+        session.hasExercises
+          ? '💪'
+          : '📋';
 
       html += `
 
         <button
+          class="session-tab ${isActive ? 'active' : ''}"
+          onclick="switchSession(${index})">
 
-          class="session-tab ${
-            isActive
-              ? 'active'
-              : ''
-          }"
-
-          onclick="switchSession(${index})"
-
-        >
-
-          <span
-            class="session-label"
-          >
-
+          <span class="session-label">
             ${session.label}
-
           </span>
 
-
-          <span
-            class="session-icon"
-          >
-
-            💪
-
+          <span class="session-icon">
+            ${icon}
           </span>
 
         </button>
@@ -1247,7 +1198,6 @@ function renderSessionTabs() {
 
     }
   );
-
 
   container.innerHTML =
     html;
@@ -1262,29 +1212,23 @@ function switchWeek(index) {
 
   if (
     index < 0 ||
-    index >=
-    currentWorkoutData.length
+    index >= currentPipeline.length
   ) {
-
     return;
-
   }
-
 
   activeWeekIndex =
     index;
 
-
   activeSessionIndex =
     0;
-
 
   renderWeekTabs();
 
   renderSessionTabs();
 
   renderSessionContent(
-    0
+    activeSessionIndex
   );
 
 }
@@ -1298,21 +1242,15 @@ function switchSession(index) {
   const sessionMap =
     buildSessionMap();
 
-
   if (
     index < 0 ||
-    index >=
-    sessionMap.length
+    index >= sessionMap.length
   ) {
-
     return;
-
   }
-
 
   activeSessionIndex =
     index;
-
 
   renderSessionTabs();
 
@@ -1325,22 +1263,6 @@ function switchSession(index) {
 
 // ============================================================
 // RENDER SESSION CONTENT
-//
-// THIS IS THE MAIN FIX.
-//
-// We get the exercise list from:
-//
-// currentWorkoutData
-//   [activeWeekIndex]
-//   .days
-//   [actualDayIndex]
-//   .exercises
-//
-// Therefore:
-//
-// Session 1 -> only Day 1
-// Session 2 -> only Day 2
-//
 // ============================================================
 function renderSessionContent(
   sessionIndex
@@ -1351,15 +1273,12 @@ function renderSessionContent(
       'workoutContent'
     );
 
-
   const sessionMap =
     buildSessionMap();
 
-
   if (
     sessionMap.length === 0 ||
-    sessionIndex >=
-    sessionMap.length
+    sessionIndex >= sessionMap.length
   ) {
 
     contentContainer.innerHTML = `
@@ -1375,8 +1294,7 @@ function renderSessionContent(
         </h3>
 
         <p>
-          No workout sessions found
-          for this week
+          No workout sessions found for this week
         </p>
 
       </div>
@@ -1384,21 +1302,27 @@ function renderSessionContent(
     `;
 
     return;
-
   }
 
 
   const session =
-    sessionMap[
-      sessionIndex
-    ];
+    sessionMap[sessionIndex];
 
 
+  // ----------------------------------------------------------
+  // IMPORTANT:
+  // Get EXACT section matched by Week + Day
+  // ----------------------------------------------------------
   const section =
-    session;
+    session.section ||
+    getSectionForDay(
+      session.weekLabel,
+      session.dayName
+    );
 
 
   if (
+    !section ||
     !section.exercises ||
     section.exercises.length === 0
   ) {
@@ -1408,8 +1332,8 @@ function renderSessionContent(
       <div class="no-exercises">
 
         <p>
-          📋 No exercises scheduled
-          for ${session.label}
+          📋 No exercises scheduled for
+          ${session.label}
         </p>
 
       </div>
@@ -1417,12 +1341,10 @@ function renderSessionContent(
     `;
 
     return;
-
   }
 
 
   const major =
-    section.major ||
     section.exercises[0]?.major ||
     'Workout';
 
@@ -1436,383 +1358,298 @@ function renderSessionContent(
         <div>
 
           <h2>
-            ${section.dayName ||
-              session.label}
+            ${section.title || session.dayName}
           </h2>
 
           <span class="major-badge">
-
             🏷️ ${major}
-
           </span>
 
         </div>
 
-
         <span class="session-badge">
-
           ${session.label}
-
         </span>
 
       </div>
-
 
       <div class="exercise-grid">
 
   `;
 
 
-  section.exercises
-    .forEach(
-      (
-        exercise,
-        exerciseIndex
-      ) => {
+  // ==========================================================
+  // VARIABLE NUMBER OF EXERCISES
+  // No fixed length
+  // ==========================================================
+  section.exercises.forEach(
+    (exercise, exerciseIndex) => {
+
+      const id =
+        `${activeWeekIndex}-${sessionIndex}-${exerciseIndex}`;
 
 
-        const id =
+      // --------------------------------------------------------
+      // MEDIA URLS
+      // Preserve both fields
+      // --------------------------------------------------------
+      const imageUrl =
+        String(
+          exercise.imageUrl ||
+          ''
+        ).trim();
 
-          `${activeWeekIndex}-` +
-
-          `${session.dayIndex}-` +
-
-          `${exerciseIndex}`;
-
-
-        const videoThumbnail =
-          getYouTubeThumbnail(
-            exercise.videoUrl
-          );
-
-
-        let mediaHtml =
-          '';
+      const videoUrl =
+        String(
+          exercise.videoUrl ||
+          ''
+        ).trim();
 
 
-        // ====================================================
-        // VIDEO
-        // ====================================================
-        if (
-          videoThumbnail
-        ) {
-
-          mediaHtml = `
-
-            <div
-
-              class="exercise-media"
-
-              onclick="window.open(
-                '${exercise.videoUrl}',
-                '_blank'
-              )"
-
-            >
-
-              <img
-
-                src="${videoThumbnail}"
-
-                alt="${exercise.eng}"
-
-                loading="lazy"
-
-                onerror="this.src='${getFallbackImage(
-                  exercise.eng
-                )}'"
-
-              >
+      const videoThumbnail =
+        getYouTubeThumbnail(
+          videoUrl
+        );
 
 
-              <div
-                class="play-icon"
-              >
-                ▶
-              </div>
+      let mediaHtml =
+        '';
 
 
-              <span
-                class="video-badge"
-              >
-                ▶ VIDEO
-              </span>
+      // --------------------------------------------------------
+      // VIDEO
+      // --------------------------------------------------------
+      if (
+        videoUrl &&
+        videoThumbnail
+      ) {
 
-            </div>
-
-          `;
-
-        }
-
-        // ====================================================
-        // IMAGE
-        // ====================================================
-        else if (
-          exercise.imageUrl
-        ) {
-
-          mediaHtml = `
-
-            <div
-              class="exercise-media"
-            >
-
-              <img
-
-                src="${exercise.imageUrl}"
-
-                alt="${exercise.eng}"
-
-                loading="lazy"
-
-                onerror="this.src='${getFallbackImage(
-                  exercise.eng
-                )}'"
-
-              >
-
-            </div>
-
-          `;
-
-        }
-
-        // ====================================================
-        // FALLBACK
-        // ====================================================
-        else {
-
-          mediaHtml = `
-
-            <div
-              class="exercise-media"
-            >
-
-              <img
-
-                src="${getFallbackImage(
-                  exercise.eng
-                )}"
-
-                alt="${exercise.eng}"
-
-              >
-
-            </div>
-
-          `;
-
-        }
-
-
-        const savedWeight =
-
-          localStorage.getItem(
-            `weight-${id}`
-          ) || '';
-
-
-        const savedAchieved =
-
-          localStorage.getItem(
-            `achieved-${id}`
-          ) || '';
-
-
-        html += `
+        mediaHtml = `
 
           <div
-            class="exercise-card"
-          >
+            class="exercise-media"
+            onclick="window.open('${videoUrl.replace(/'/g, "\\'")}', '_blank')">
 
-            ${mediaHtml}
+            <img
+              src="${videoThumbnail}"
+              alt="${exercise.eng || 'Exercise'}"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='${imageUrl || getFallbackImage(exercise.eng || 'Exercise')}'">
 
-
-            <div
-              class="exercise-header"
-            >
-
-              <h3>
-
-                ${
-                  exercise.eng ||
-                  'Exercise'
-                }
-
-              </h3>
-
-
-              <div
-                class="arabic"
-              >
-
-                ${
-                  exercise.arb ||
-                  ''
-                }
-
-              </div>
-
-
-              <span
-                class="muscle"
-              >
-
-                ${
-                  exercise.muscle ||
-                  '—'
-                }
-
-              </span>
-
+            <div class="play-icon">
+              ▶
             </div>
 
-
-            <div
-              class="details"
-            >
-
-              <div
-                class="detail"
-              >
-
-                <span
-                  class="detail-label"
-                >
-                  Sets
-                </span>
-
-                <span
-                  class="detail-value"
-                >
-
-                  ${
-                    exercise.sets ||
-                    '—'
-                  }
-
-                </span>
-
-              </div>
-
-
-              <div
-                class="detail"
-              >
-
-                <span
-                  class="detail-label"
-                >
-                  Reps
-                </span>
-
-                <span
-                  class="detail-value"
-                >
-
-                  ${
-                    exercise.reps ||
-                    '—'
-                  }
-
-                </span>
-
-              </div>
-
-
-              <div
-                class="detail"
-              >
-
-                <span
-                  class="detail-label"
-                >
-                  Rest
-                </span>
-
-                <span
-                  class="detail-value"
-                >
-
-                  ${
-                    exercise.rest ||
-                    '—'
-                  }
-
-                </span>
-
-              </div>
-
-            </div>
-
-
-            <div
-              class="inputs"
-            >
-
-              <div
-                class="input-group"
-              >
-
-                <label
-                  for="weight-${id}"
-                >
-
-                  🏋️ Weight
-
-                </label>
-
-
-                <input
-
-                  id="weight-${id}"
-
-                  type="text"
-
-                  placeholder="e.g. 20 kg"
-
-                  value="${savedWeight}"
-
-                >
-
-              </div>
-
-
-              <div
-                class="input-group"
-              >
-
-                <label
-                  for="achieved-${id}"
-                >
-
-                  ✅ Reps Achieved
-
-                </label>
-
-
-                <input
-
-                  id="achieved-${id}"
-
-                  type="text"
-
-                  placeholder="e.g. 8, 8, 7"
-
-                  value="${savedAchieved}"
-
-                >
-
-              </div>
-
-            </div>
+            <span class="video-badge">
+              ▶ VIDEO
+            </span>
 
           </div>
 
         `;
 
       }
-    );
+
+
+      // --------------------------------------------------------
+      // IMAGE
+      // --------------------------------------------------------
+      else if (
+        imageUrl
+      ) {
+
+        mediaHtml = `
+
+          <div class="exercise-media">
+
+            <img
+              src="${imageUrl}"
+              alt="${exercise.eng || 'Exercise'}"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='${getFallbackImage(exercise.eng || 'Exercise')}'">
+
+          </div>
+
+        `;
+
+      }
+
+
+      // --------------------------------------------------------
+      // VIDEO URL EXISTS BUT THUMBNAIL COULD NOT BE EXTRACTED
+      // --------------------------------------------------------
+      else if (
+        videoUrl
+      ) {
+
+        mediaHtml = `
+
+          <div
+            class="exercise-media"
+            onclick="window.open('${videoUrl.replace(/'/g, "\\'")}', '_blank')">
+
+            <img
+              src="${getFallbackImage(exercise.eng || 'Exercise')}"
+              alt="${exercise.eng || 'Exercise'}">
+
+            <div class="play-icon">
+              ▶
+            </div>
+
+            <span class="video-badge">
+              ▶ VIDEO
+            </span>
+
+          </div>
+
+        `;
+
+      }
+
+
+      // --------------------------------------------------------
+      // FALLBACK
+      // --------------------------------------------------------
+      else {
+
+        mediaHtml = `
+
+          <div class="exercise-media">
+
+            <img
+              src="${getFallbackImage(exercise.eng || 'Exercise')}"
+              alt="${exercise.eng || 'Exercise'}">
+
+          </div>
+
+        `;
+
+      }
+
+
+      const savedWeight =
+        localStorage.getItem(
+          `weight-${currentUsername}-${id}`
+        ) || '';
+
+
+      const savedAchieved =
+        localStorage.getItem(
+          `achieved-${currentUsername}-${id}`
+        ) || '';
+
+
+      html += `
+
+        <div class="exercise-card">
+
+          ${mediaHtml}
+
+          <div class="exercise-header">
+
+            <h3>
+              ${exercise.eng || 'Exercise'}
+            </h3>
+
+            <div class="arabic">
+              ${exercise.arb || ''}
+            </div>
+
+            <span class="muscle">
+              ${exercise.muscle || '—'}
+            </span>
+
+          </div>
+
+
+          <div class="details">
+
+            <div class="detail">
+
+              <span class="detail-label">
+                Sets
+              </span>
+
+              <span class="detail-value">
+                ${exercise.sets || '—'}
+              </span>
+
+            </div>
+
+
+            <div class="detail">
+
+              <span class="detail-label">
+                Reps
+              </span>
+
+              <span class="detail-value">
+                ${exercise.reps || '—'}
+              </span>
+
+            </div>
+
+
+            <div class="detail">
+
+              <span class="detail-label">
+                Rest
+              </span>
+
+              <span class="detail-value">
+                ${exercise.rest || '—'}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="inputs">
+
+            <div class="input-group">
+
+              <label
+                for="weight-${id}">
+
+                🏋️ Weight
+
+              </label>
+
+              <input
+                id="weight-${id}"
+                type="text"
+                placeholder="e.g. 20 kg"
+                value="${savedWeight}">
+
+            </div>
+
+
+            <div class="input-group">
+
+              <label
+                for="achieved-${id}">
+
+                ✅ Reps Achieved
+
+              </label>
+
+              <input
+                id="achieved-${id}"
+                type="text"
+                placeholder="e.g. 8, 8, 7"
+                value="${savedAchieved}">
+
+            </div>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }
+  );
 
 
   html += `
@@ -1833,141 +1670,86 @@ function renderSessionContent(
 // ============================================================
 // SAVE PROGRESS
 // ============================================================
-async function saveProgress() {
-
-  const sessionMap =
-    buildSessionMap();
-
-
-  const session =
-    sessionMap[
-      activeSessionIndex
-    ];
-
+function saveProgress() {
 
   if (
-    !session ||
-    !session.exercises
+    !currentWorkoutData ||
+    currentWorkoutData.length === 0
   ) {
 
     showSaveMessage(
-
       '⚠️ No workout data to save',
-
       'error'
-
     );
 
     return;
-
   }
 
+
+  const sessionMap =
+    buildSessionMap();
 
   let savedCount =
     0;
 
 
-  for (
-    let i = 0;
-    i <
-    session.exercises.length;
-    i++
-  ) {
+  sessionMap.forEach(
+    (session, sessionIndex) => {
 
-    const exercise =
-      session.exercises[i];
+      const section =
+        session.section;
 
-
-    const id =
-
-      `${activeWeekIndex}-` +
-
-      `${session.dayIndex}-` +
-
-      `${i}`;
+      if (
+        !section ||
+        !section.exercises
+      ) {
+        return;
+      }
 
 
-    const weight =
-      document
-        .getElementById(
-          `weight-${id}`
-        )
-        ?.value ||
-      '';
+      section.exercises.forEach(
+        (exercise, exerciseIndex) => {
+
+          const id =
+            `${activeWeekIndex}-${sessionIndex}-${exerciseIndex}`;
 
 
-    const achieved =
-      document
-        .getElementById(
-          `achieved-${id}`
-        )
-        ?.value ||
-      '';
+          const weight =
+            document.getElementById(
+              `weight-${id}`
+            )?.value || '';
 
 
-    if (
-      weight ||
-      achieved
-    ) {
-
-      localStorage.setItem(
-
-        `weight-${id}`,
-
-        weight
-
-      );
+          const achieved =
+            document.getElementById(
+              `achieved-${id}`
+            )?.value || '';
 
 
-      localStorage.setItem(
-
-        `achieved-${id}`,
-
-        achieved
-
-      );
-
-
-      // Save to Google Sheet
-      await callApi(
-
-        'saveProgress',
-
-        {
-
-          username:
-            currentUsername,
-
-          week:
-            currentWorkoutData[
-              activeWeekIndex
-            ].weekLabel,
-
-          day:
-            session.dayName,
-
-          major:
-            exercise.major,
-
-          exercise:
-            exercise.eng,
-
-          weight:
-            weight,
-
-          achievedReps:
+          if (
+            weight ||
             achieved
+          ) {
+
+            localStorage.setItem(
+              `weight-${currentUsername}-${id}`,
+              weight
+            );
+
+            localStorage.setItem(
+              `achieved-${currentUsername}-${id}`,
+              achieved
+            );
+
+            savedCount++;
+
+          }
 
         }
-
       );
 
-
-      savedCount++;
-
     }
-
-  }
+  );
 
 
   if (
@@ -1975,21 +1757,15 @@ async function saveProgress() {
   ) {
 
     showSaveMessage(
-
       `✅ Saved ${savedCount} entries!`,
-
       'success'
-
     );
 
   } else {
 
     showSaveMessage(
-
-      'ℹ️ No data to save.',
-
+      'ℹ️ No data to save. Enter some weights or reps first.',
       'error'
-
     );
 
   }
@@ -2010,19 +1786,15 @@ function showLoginMessage(
       'loginMessage'
     );
 
-
   el.textContent =
     text;
-
 
   el.className =
     'message ' +
     type;
 
-
   el.style.display =
     'block';
-
 
   if (
     type === 'success' ||
@@ -2036,7 +1808,6 @@ function showLoginMessage(
           'none';
 
       },
-
       5000
     );
 
@@ -2058,19 +1829,15 @@ function showSaveMessage(
       'saveMessage'
     );
 
-
   el.textContent =
     text;
-
 
   el.className =
     'save-message ' +
     type;
 
-
   el.style.display =
     'inline';
-
 
   setTimeout(
     () => {
@@ -2079,7 +1846,6 @@ function showSaveMessage(
         'none';
 
     },
-
     4000
   );
 
@@ -2087,59 +1853,15 @@ function showSaveMessage(
 
 
 // ============================================================
-// AUTO LOGIN
-// ============================================================
-const savedUsername =
-
-  localStorage.getItem(
-    STORAGE_KEY_USER
-  );
-
-
-if (
-  savedUsername
-) {
-
-  document
-    .getElementById(
-      'usernameInput'
-    )
-    .value =
-    savedUsername;
-
-
-  currentUsername =
-    savedUsername;
-
-
-  window.addEventListener(
-    'load',
-    function() {
-
-      setTimeout(
-        login,
-        500
-      );
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// CTRL + S
+// KEYBOARD SHORTCUT
 // ============================================================
 document.addEventListener(
-
   'keydown',
-
   function(e) {
 
     if (
       e.ctrlKey &&
-      e.key.toLowerCase() ===
-      's'
+      e.key.toLowerCase() === 's'
     ) {
 
       e.preventDefault();
@@ -2149,10 +1871,10 @@ document.addEventListener(
     }
 
   }
-
 );
 
 </script>
+
 
 </body>
 </html>
