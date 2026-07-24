@@ -390,493 +390,1769 @@
 // ============================================================
 // HARDCODED API URL
 // ============================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbx2-HGy4lemEo768w5ujhsWKR-Y_5LRdHZSabPEob3JGekROlK0RBnfAB8w47OMrvjzLw/exec';
+<script>
 
 // ============================================================
-// CONFIGURATION
+// API URL
 // ============================================================
-const STORAGE_KEY_USER = 'workout_username';
+const API_URL =
+'https://script.google.com/macros/s/AKfycbx2-HGy4lemEo768w5ujhsWKR-Y_5LRdHZSabPEob3JGekROlK0RBnfAB8w47OMrvjzLw/exec';
+
+
+// ============================================================
+// STORAGE
+// ============================================================
+const STORAGE_KEY_USER =
+'workout_username';
+
+
+// ============================================================
+// GLOBAL DATA
+// ============================================================
 let currentWorkoutData = [];
+
 let currentPipeline = [];
+
 let activeWeekIndex = 0;
+
 let activeSessionIndex = 0;
+
 let currentUsername = '';
 
+
 // ============================================================
-// GET EXERCISE-SPECIFIC FALLBACK IMAGE
+// FALLBACK IMAGE
 // ============================================================
 function getFallbackImage(exerciseName) {
+
   const colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-    '#F8C471', '#82E0AA', '#F1948A', '#85929E', '#73C6B6',
-    '#E59866', '#AF7AC5', '#5DADE2', '#58D68D', '#F5B7B1'
+
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#DDA0DD',
+    '#98D8C8',
+    '#F7DC6F',
+    '#BB8FCE',
+    '#85C1E9'
+
   ];
-  
+
   let hash = 0;
-  for (let i = 0; i < exerciseName.length; i++) {
-    hash = exerciseName.charCodeAt(i) + ((hash << 5) - hash);
+
+  for (
+    let i = 0;
+    i < exerciseName.length;
+    i++
+  ) {
+
+    hash =
+      exerciseName.charCodeAt(i) +
+      ((hash << 5) - hash);
+
   }
-  const colorIndex = Math.abs(hash) % colors.length;
-  const color = colors[colorIndex];
-  
-  const firstLetter = exerciseName.charAt(0).toUpperCase();
-  
+
+  const color =
+    colors[
+      Math.abs(hash) %
+      colors.length
+    ];
+
+
+  const firstLetter =
+    exerciseName
+      ? exerciseName
+          .charAt(0)
+          .toUpperCase()
+      : '?';
+
+
   return `data:image/svg+xml,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-      <rect width="400" height="300" fill="${color}" rx="10"/>
-      <text x="200" y="115" font-family="Arial" font-size="80" font-weight="bold" fill="white" text-anchor="middle" opacity="0.3">${firstLetter}</text>
-      <text x="200" y="160" font-family="Arial" font-size="28" font-weight="bold" fill="white" text-anchor="middle">💪</text>
-      <text x="200" y="200" font-family="Arial" font-size="16" fill="white" text-anchor="middle" opacity="0.95">${exerciseName.length > 25 ? exerciseName.substring(0, 25) + '...' : exerciseName}</text>
+
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="400"
+      height="300"
+    >
+
+      <rect
+        width="400"
+        height="300"
+        fill="${color}"
+      />
+
+      <text
+        x="200"
+        y="130"
+        font-family="Arial"
+        font-size="90"
+        font-weight="bold"
+        fill="white"
+        text-anchor="middle"
+        opacity="0.3"
+      >
+        ${firstLetter}
+      </text>
+
+      <text
+        x="200"
+        y="190"
+        font-family="Arial"
+        font-size="18"
+        fill="white"
+        text-anchor="middle"
+      >
+        ${exerciseName}
+      </text>
+
     </svg>
+
   `)}`;
+
 }
 
+
 // ============================================================
-// GET YOUTUBE THUMBNAIL FROM VIDEO URL
+// YOUTUBE THUMBNAIL
 // ============================================================
 function getYouTubeThumbnail(videoUrl) {
-  if (!videoUrl) return null;
-  
+
+  if (!videoUrl) {
+    return null;
+  }
+
+
   let videoId = null;
-  
-  if (videoUrl.includes('youtube.com/shorts/')) {
-    const match = videoUrl.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
-    if (match) videoId = match[1];
-  } else if (videoUrl.includes('watch?v=')) {
-    const match = videoUrl.match(/v=([a-zA-Z0-9_-]{11})/);
-    if (match) videoId = match[1];
-  } else if (videoUrl.includes('youtu.be/')) {
-    const match = videoUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-    if (match) videoId = match[1];
-  } else if (videoUrl.includes('embed/')) {
-    const match = videoUrl.match(/embed\/([a-zA-Z0-9_-]{11})/);
-    if (match) videoId = match[1];
-  }
-  
-  if (videoId) {
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-  }
-  
-  return null;
-}
 
-// ============================================================
-// BUILD SESSION MAP DYNAMICALLY
-// ============================================================
-function buildSessionMap() {
-  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
-    return [];
+
+  let match;
+
+
+  match =
+    videoUrl.match(
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    );
+
+  if (match) {
+
+    videoId =
+      match[1];
+
   }
-  
-  const week = currentPipeline[activeWeekIndex];
-  if (!week || !week.days) return [];
-  
-  const sessionMap = [];
-  let sessionCounter = 1;
-  
-  week.days.forEach((day, index) => {
-    if (day.type !== 'rest') {
-      const dayData = currentWorkoutData[index];
-      const hasExercises = dayData && dayData.exercises && dayData.exercises.length > 0;
-      
-      sessionMap.push({
-        dayIndex: index,
-        label: 'Session ' + sessionCounter,
-        hasExercises: hasExercises,
-        dayName: day.label
-      });
-      sessionCounter++;
+
+
+  if (!videoId) {
+
+    match =
+      videoUrl.match(
+        /[?&]v=([a-zA-Z0-9_-]{11})/
+      );
+
+    if (match) {
+
+      videoId =
+        match[1];
+
     }
-  });
-  
-  return sessionMap;
+
+  }
+
+
+  if (!videoId) {
+
+    match =
+      videoUrl.match(
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/
+      );
+
+    if (match) {
+
+      videoId =
+        match[1];
+
+    }
+
+  }
+
+
+  if (!videoId) {
+
+    match =
+      videoUrl.match(
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+      );
+
+    if (match) {
+
+      videoId =
+        match[1];
+
+    }
+
+  }
+
+
+  if (!videoId) {
+
+    return null;
+
+  }
+
+
+  return
+    `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
 }
 
-// Load saved username
-const savedUsername = localStorage.getItem(STORAGE_KEY_USER);
-if (savedUsername) {
-  document.getElementById('usernameInput').value = savedUsername;
-  currentUsername = savedUsername;
-  window.addEventListener('load', function() {
-    if (savedUsername) setTimeout(login, 500);
-  });
-}
 
 // ============================================================
 // API CALL
 // ============================================================
-async function callApi(action, data = {}) {
+async function callApi(
+  action,
+  data = {}
+) {
+
   try {
-    const params = new URLSearchParams();
-    params.append('action', action);
-    Object.keys(data).forEach(key => {
-      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
-        params.append(key, data[key]);
+
+    const params =
+      new URLSearchParams();
+
+
+    params.append(
+      'action',
+      action
+    );
+
+
+    Object.keys(data).forEach(
+      key => {
+
+        if (
+          data[key] !== undefined &&
+          data[key] !== null &&
+          data[key] !== ''
+        ) {
+
+          params.append(
+            key,
+            data[key]
+          );
+
+        }
+
       }
-    });
-    const url = API_URL + '?' + params.toString();
-    console.log('API Request:', url);
-    const response = await fetch(url, { method: 'GET' });
-    if (!response.ok) throw new Error('HTTP Error ' + response.status);
-    const result = await response.json();
-    console.log('API Response:', result);
+    );
+
+
+    const url =
+      API_URL +
+      '?' +
+      params.toString();
+
+
+    console.log(
+      'API Request:',
+      url
+    );
+
+
+    const response =
+      await fetch(url);
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'HTTP Error ' +
+        response.status
+      );
+
+    }
+
+
+    const result =
+      await response.json();
+
+
+    console.log(
+      'API Response:',
+      result
+    );
+
+
     return result;
+
+
   } catch (error) {
-    console.error('API Error:', error);
-    showLoginMessage('❌ Error: ' + error.message, 'error');
+
+    console.error(
+      'API Error:',
+      error
+    );
+
+
+    showLoginMessage(
+      '❌ Error: ' +
+      error.message,
+      'error'
+    );
+
+
     return null;
+
   }
+
 }
+
 
 // ============================================================
 // LOGIN
 // ============================================================
 async function login() {
-  const username = document.getElementById('usernameInput').value.trim();
-  if (!username) { showLoginMessage('Please enter your username', 'error'); return; }
 
-  currentUsername = username;
-  localStorage.setItem(STORAGE_KEY_USER, username);
+  const username =
+    document
+      .getElementById(
+        'usernameInput'
+      )
+      .value
+      .trim();
 
-  const btn = document.getElementById('loginBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Loading...';
-  showLoginMessage('Loading your workout plan...', 'info');
 
-  const result = await callApi('getWorkoutData', { username });
+  if (!username) {
 
-  btn.disabled = false;
-  btn.textContent = '📥 Load My Workout';
+    showLoginMessage(
+      'Please enter your username',
+      'error'
+    );
 
-  if (result && result.status === 'success') {
-    if (!result.sections || result.sections.length === 0) {
-      showLoginMessage('No workout data found for this user. Please contact your coach.', 'error');
-      return;
-    }
+    return;
 
-    currentWorkoutData = result.sections;
-    currentPipeline = result.pipeline;
-    activeWeekIndex = 0;
-    activeSessionIndex = 0;
-
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('weekContainer').classList.add('visible');
-    document.getElementById('saveBar').classList.add('visible');
-    document.getElementById('userDisplay').textContent = '👤 ' + username;
-
-    renderAllTabs();
-    showLoginMessage('✅ Welcome ' + username + '!', 'success');
-  } else {
-    showLoginMessage('Error loading data: ' + (result?.message || 'Unknown error'), 'error');
   }
+
+
+  currentUsername =
+    username;
+
+
+  localStorage.setItem(
+    STORAGE_KEY_USER,
+    username
+  );
+
+
+  const btn =
+    document.getElementById(
+      'loginBtn'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  btn.textContent =
+    '⏳ Loading...';
+
+
+  showLoginMessage(
+    'Loading your workout plan...',
+    'info'
+  );
+
+
+  const result =
+    await callApi(
+      'getWorkoutData',
+      {
+        username:
+          username
+      }
+    );
+
+
+  btn.disabled =
+    false;
+
+
+  btn.textContent =
+    '📥 Load My Workout';
+
+
+  if (
+    !result ||
+    result.status !== 'success'
+  ) {
+
+    showLoginMessage(
+
+      '❌ Error loading data: ' +
+      (
+        result?.message ||
+        'Unknown error'
+      ),
+
+      'error'
+
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================================
+  // IMPORTANT
+  //
+  // We now use result.weeks.
+  //
+  // NOT result.sections.
+  // ==========================================================
+
+  if (
+    !result.weeks ||
+    result.weeks.length === 0
+  ) {
+
+    showLoginMessage(
+
+      'No workout data found for this user.',
+
+      'error'
+
+    );
+
+    return;
+
+  }
+
+
+  currentWorkoutData =
+    result.weeks;
+
+
+  currentPipeline =
+    result.pipeline ||
+    [];
+
+
+  activeWeekIndex =
+    0;
+
+
+  activeSessionIndex =
+    0;
+
+
+  document
+    .getElementById(
+      'loginSection'
+    )
+    .style
+    .display =
+    'none';
+
+
+  document
+    .getElementById(
+      'weekContainer'
+    )
+    .classList
+    .add(
+      'visible'
+    );
+
+
+  document
+    .getElementById(
+      'saveBar'
+    )
+    .classList
+    .add(
+      'visible'
+    );
+
+
+  document
+    .getElementById(
+      'userDisplay'
+    )
+    .textContent =
+    '👤 ' +
+    username;
+
+
+  renderAllTabs();
+
+
+  showLoginMessage(
+
+    '✅ Welcome ' +
+    username +
+    '!',
+
+    'success'
+
+  );
+
 }
+
 
 // ============================================================
 // LOGOUT
 // ============================================================
 function logout() {
-  currentUsername = '';
-  currentWorkoutData = [];
-  currentPipeline = [];
-  activeWeekIndex = 0;
-  activeSessionIndex = 0;
-  document.getElementById('loginSection').style.display = 'block';
-  document.getElementById('weekContainer').classList.remove('visible');
-  document.getElementById('saveBar').classList.remove('visible');
-  document.getElementById('usernameInput').value = '';
-  document.getElementById('usernameInput').focus();
-  showLoginMessage('Logged out successfully', 'success');
+
+  currentUsername =
+    '';
+
+  currentWorkoutData =
+    [];
+
+  currentPipeline =
+    [];
+
+
+  activeWeekIndex =
+    0;
+
+
+  activeSessionIndex =
+    0;
+
+
+  document
+    .getElementById(
+      'loginSection'
+    )
+    .style
+    .display =
+    'block';
+
+
+  document
+    .getElementById(
+      'weekContainer'
+    )
+    .classList
+    .remove(
+      'visible'
+    );
+
+
+  document
+    .getElementById(
+      'saveBar'
+    )
+    .classList
+    .remove(
+      'visible'
+    );
+
+
+  document
+    .getElementById(
+      'usernameInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'usernameInput'
+    )
+    .focus();
+
+
+  showLoginMessage(
+
+    'Logged out successfully',
+
+    'success'
+
+  );
+
 }
 
+
 // ============================================================
-// RENDER ALL TABS
+// RENDER ALL
 // ============================================================
 function renderAllTabs() {
+
   renderWeekTabs();
+
   renderSessionTabs();
-  renderSessionContent(activeSessionIndex);
+
+  renderSessionContent(
+    activeSessionIndex
+  );
+
 }
+
 
 // ============================================================
 // RENDER WEEK TABS
 // ============================================================
 function renderWeekTabs() {
-  const container = document.getElementById('weekTabs');
-  if (!currentPipeline || currentPipeline.length === 0) { container.innerHTML = ''; return; }
 
-  let html = '';
-  currentPipeline.forEach((week, index) => {
-    const isActive = index === activeWeekIndex;
-    const sessionCount = week.days.filter(d => d.type !== 'rest').length;
-    html += `<button class="week-tab ${isActive ? 'active' : ''}" onclick="switchWeek(${index})">${week.weekLabel}<span class="week-label">${sessionCount} sessions</span></button>`;
-  });
-  container.innerHTML = html;
+  const container =
+    document.getElementById(
+      'weekTabs'
+    );
+
+
+  if (
+    !currentWorkoutData ||
+    currentWorkoutData.length === 0
+  ) {
+
+    container.innerHTML =
+      '';
+
+    return;
+
+  }
+
+
+  let html =
+    '';
+
+
+  currentWorkoutData
+    .forEach(
+      (week, index) => {
+
+        const isActive =
+          index ===
+          activeWeekIndex;
+
+
+        const sessionCount =
+          week.days
+            ? week.days.filter(
+                day =>
+                  day.exercises &&
+                  day.exercises.length > 0
+              ).length
+            : 0;
+
+
+        html += `
+
+          <button
+            class="week-tab ${
+              isActive
+                ? 'active'
+                : ''
+            }"
+            onclick="switchWeek(${index})"
+          >
+
+            ${week.weekLabel}
+
+            <span class="week-label">
+
+              ${sessionCount}
+              sessions
+
+            </span>
+
+          </button>
+
+        `;
+
+      }
+    );
+
+
+  container.innerHTML =
+    html;
+
 }
+
+
+// ============================================================
+// BUILD SESSION MAP
+//
+// IMPORTANT:
+//
+// This is now built ONLY from the ACTIVE WEEK.
+//
+// Session 1 = first workout day of current week.
+// Session 2 = second workout day of current week.
+//
+// No mixing between weeks.
+// ============================================================
+function buildSessionMap() {
+
+  if (
+    !currentWorkoutData ||
+    !currentWorkoutData[
+      activeWeekIndex
+    ]
+  ) {
+
+    return [];
+
+  }
+
+
+  const week =
+    currentWorkoutData[
+      activeWeekIndex
+    ];
+
+
+  if (
+    !week.days
+  ) {
+
+    return [];
+
+  }
+
+
+  const sessionMap =
+    [];
+
+
+  let sessionCounter =
+    1;
+
+
+  week.days.forEach(
+    (day, dayIndex) => {
+
+      if (
+        day.exercises &&
+        day.exercises.length > 0
+      ) {
+
+        sessionMap.push({
+
+          dayIndex:
+            dayIndex,
+
+          label:
+            'Session ' +
+            sessionCounter,
+
+          dayName:
+            day.day,
+
+          major:
+            day.major,
+
+          exercises:
+            day.exercises
+
+        });
+
+
+        sessionCounter++;
+
+      }
+
+    }
+  );
+
+
+  return sessionMap;
+
+}
+
 
 // ============================================================
 // RENDER SESSION TABS
 // ============================================================
 function renderSessionTabs() {
-  const container = document.getElementById('sessionTabs');
-  
-  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
-    container.innerHTML = '';
+
+  const container =
+    document.getElementById(
+      'sessionTabs'
+    );
+
+
+  const sessionMap =
+    buildSessionMap();
+
+
+  if (
+    sessionMap.length === 0
+  ) {
+
+    container.innerHTML =
+
+      '<p style="color:#6b7280;text-align:center;width:100%;">' +
+
+      'No workout sessions found' +
+
+      '</p>';
+
     return;
+
   }
 
-  const sessionMap = buildSessionMap();
-  
-  if (sessionMap.length === 0) {
-    container.innerHTML = '<p style="color:#6b7280;text-align:center;width:100%;">No workout sessions found</p>';
-    return;
-  }
 
-  let html = '';
+  let html =
+    '';
 
-  sessionMap.forEach((session, index) => {
-    const isActive = index === activeSessionIndex;
-    
-    const daySection = currentWorkoutData[session.dayIndex] || { exercises: [] };
-    const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
-    
-    const icon = hasWorkout ? '💪' : '📋';
 
-    html += `
-      <button class="session-tab ${isActive ? 'active' : ''}" 
-              onclick="switchSession(${index})">
-        <span class="session-label">${session.label}</span>
-        <span class="session-icon">${icon}</span>
-      </button>
-    `;
-  });
+  sessionMap.forEach(
+    (session, index) => {
 
-  container.innerHTML = html;
+      const isActive =
+        index ===
+        activeSessionIndex;
+
+
+      html += `
+
+        <button
+
+          class="session-tab ${
+            isActive
+              ? 'active'
+              : ''
+          }"
+
+          onclick="switchSession(${index})"
+
+        >
+
+          <span
+            class="session-label"
+          >
+
+            ${session.label}
+
+          </span>
+
+
+          <span
+            class="session-icon"
+          >
+
+            💪
+
+          </span>
+
+        </button>
+
+      `;
+
+    }
+  );
+
+
+  container.innerHTML =
+    html;
+
 }
+
 
 // ============================================================
 // SWITCH WEEK
 // ============================================================
 function switchWeek(index) {
-  if (index === activeWeekIndex || index >= currentPipeline.length) return;
-  activeWeekIndex = index;
-  activeSessionIndex = 0;
-  document.querySelectorAll('.week-tab').forEach((tab, i) => tab.classList.toggle('active', i === index));
+
+  if (
+    index < 0 ||
+    index >=
+    currentWorkoutData.length
+  ) {
+
+    return;
+
+  }
+
+
+  activeWeekIndex =
+    index;
+
+
+  activeSessionIndex =
+    0;
+
+
+  renderWeekTabs();
+
   renderSessionTabs();
-  renderSessionContent(activeSessionIndex);
+
+  renderSessionContent(
+    0
+  );
+
 }
+
 
 // ============================================================
 // SWITCH SESSION
 // ============================================================
 function switchSession(index) {
-  if (index === activeSessionIndex) return;
-  activeSessionIndex = index;
-  document.querySelectorAll('.session-tab').forEach((tab, i) => tab.classList.toggle('active', i === index));
-  renderSessionContent(index);
+
+  const sessionMap =
+    buildSessionMap();
+
+
+  if (
+    index < 0 ||
+    index >=
+    sessionMap.length
+  ) {
+
+    return;
+
+  }
+
+
+  activeSessionIndex =
+    index;
+
+
+  renderSessionTabs();
+
+  renderSessionContent(
+    index
+  );
+
 }
 
-// ============================================================
-// RENDER SESSION CONTENT - WITH VIDEO THUMBNAILS
-// ============================================================
-function renderSessionContent(sessionIndex) {
-  const contentContainer = document.getElementById('workoutContent');
 
-  const sessionMap = buildSessionMap();
-  
-  if (sessionMap.length === 0 || sessionIndex >= sessionMap.length) {
+// ============================================================
+// RENDER SESSION CONTENT
+//
+// THIS IS THE MAIN FIX.
+//
+// We get the exercise list from:
+//
+// currentWorkoutData
+//   [activeWeekIndex]
+//   .days
+//   [actualDayIndex]
+//   .exercises
+//
+// Therefore:
+//
+// Session 1 -> only Day 1
+// Session 2 -> only Day 2
+//
+// ============================================================
+function renderSessionContent(
+  sessionIndex
+) {
+
+  const contentContainer =
+    document.getElementById(
+      'workoutContent'
+    );
+
+
+  const sessionMap =
+    buildSessionMap();
+
+
+  if (
+    sessionMap.length === 0 ||
+    sessionIndex >=
+    sessionMap.length
+  ) {
+
     contentContainer.innerHTML = `
+
       <div class="empty-state">
-        <div class="icon">📋</div>
-        <h3>No Sessions Available</h3>
-        <p>No workout sessions found for this week</p>
+
+        <div class="icon">
+          📋
+        </div>
+
+        <h3>
+          No Sessions Available
+        </h3>
+
+        <p>
+          No workout sessions found
+          for this week
+        </p>
+
       </div>
+
     `;
+
     return;
+
   }
 
-  const session = sessionMap[sessionIndex];
-  const dayIndex = session.dayIndex;
 
-  if (!currentWorkoutData || currentWorkoutData.length === 0 || dayIndex >= currentWorkoutData.length) {
-    contentContainer.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">📋</div>
-        <h3>No Exercises for ${session.label}</h3>
-        <p>Your coach hasn't added exercises for this session yet</p>
-      </div>
-    `;
-    return;
-  }
+  const session =
+    sessionMap[
+      sessionIndex
+    ];
 
-  const section = currentWorkoutData[dayIndex];
-  if (!section || !section.exercises || section.exercises.length === 0) {
+
+  const section =
+    session;
+
+
+  if (
+    !section.exercises ||
+    section.exercises.length === 0
+  ) {
+
     contentContainer.innerHTML = `
+
       <div class="no-exercises">
-        <p>📋 No exercises scheduled for ${session.label}</p>
+
+        <p>
+          📋 No exercises scheduled
+          for ${session.label}
+        </p>
+
       </div>
+
     `;
+
     return;
+
   }
 
-  const major = section.exercises[0]?.major || 'Workout';
+
+  const major =
+    section.major ||
+    section.exercises[0]?.major ||
+    'Workout';
+
 
   let html = `
+
     <div class="workout-content active">
+
       <div class="workout-header">
+
         <div>
-          <h2>${section.title || session.label}</h2>
-          <span class="major-badge">🏷️ ${major}</span>
+
+          <h2>
+            ${section.dayName ||
+              session.label}
+          </h2>
+
+          <span class="major-badge">
+
+            🏷️ ${major}
+
+          </span>
+
         </div>
-        <span class="session-badge">${session.label}</span>
+
+
+        <span class="session-badge">
+
+          ${session.label}
+
+        </span>
+
       </div>
+
+
       <div class="exercise-grid">
+
   `;
 
-  section.exercises.forEach((exercise, exerciseIndex) => {
-    const id = `${dayIndex}-${exerciseIndex}`;
-    
-    // 🎬 Check if this exercise has a video
-    const videoThumbnail = getYouTubeThumbnail(exercise.videoUrl);
-    
-    let mediaHtml = '';
-    
-    if (videoThumbnail) {
-      // 🎬 VIDEO: Show YouTube thumbnail with play button
-      mediaHtml = `
-        <div class="exercise-media" onclick="window.open('${exercise.videoUrl}', '_blank')">
-          <img src="${videoThumbnail}" alt="${exercise.eng}" loading="lazy" 
-               onerror="this.src='${getFallbackImage(exercise.eng)}'">
-          <div class="play-icon">▶</div>
-          <span class="video-badge">▶ VIDEO</span>
-        </div>
-      `;
-    } else if (exercise.imageUrl) {
-      // 🖼️ IMAGE: Show the image
-      mediaHtml = `
-        <div class="exercise-media">
-          <img src="${exercise.imageUrl}" alt="${exercise.eng}" loading="lazy" 
-               onerror="this.src='${getFallbackImage(exercise.eng)}'">
-        </div>
-      `;
-    } else {
-      // 🎨 FALLBACK: Colored card with exercise name
-      mediaHtml = `
-        <div class="exercise-media">
-          <img src="${getFallbackImage(exercise.eng)}" alt="${exercise.eng}">
-        </div>
-      `;
-    }
 
-    const savedWeight = localStorage.getItem(`weight-${id}`) || '';
-    const savedAchieved = localStorage.getItem(`achieved-${id}`) || '';
+  section.exercises
+    .forEach(
+      (
+        exercise,
+        exerciseIndex
+      ) => {
 
-    html += `
-      <div class="exercise-card">
-        ${mediaHtml}
 
-        <div class="exercise-header">
-          <h3>${exercise.eng || 'Exercise'}</h3>
-          <div class="arabic">${exercise.arb || ''}</div>
-          <span class="muscle">${exercise.muscle || '—'}</span>
-        </div>
+        const id =
 
-        <div class="details">
-          <div class="detail">
-            <span class="detail-label">Sets</span>
-            <span class="detail-value">${exercise.sets || '—'}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Reps</span>
-            <span class="detail-value">${exercise.reps || '—'}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Rest</span>
-            <span class="detail-value">${exercise.rest || '—'}</span>
-          </div>
-        </div>
+          `${activeWeekIndex}-` +
 
-        <div class="inputs">
-          <div class="input-group">
-            <label for="weight-${id}">🏋️ Weight</label>
-            <input id="weight-${id}" type="text" placeholder="e.g. 20 kg" value="${savedWeight}">
+          `${session.dayIndex}-` +
+
+          `${exerciseIndex}`;
+
+
+        const videoThumbnail =
+          getYouTubeThumbnail(
+            exercise.videoUrl
+          );
+
+
+        let mediaHtml =
+          '';
+
+
+        // ====================================================
+        // VIDEO
+        // ====================================================
+        if (
+          videoThumbnail
+        ) {
+
+          mediaHtml = `
+
+            <div
+
+              class="exercise-media"
+
+              onclick="window.open(
+                '${exercise.videoUrl}',
+                '_blank'
+              )"
+
+            >
+
+              <img
+
+                src="${videoThumbnail}"
+
+                alt="${exercise.eng}"
+
+                loading="lazy"
+
+                onerror="this.src='${getFallbackImage(
+                  exercise.eng
+                )}'"
+
+              >
+
+
+              <div
+                class="play-icon"
+              >
+                ▶
+              </div>
+
+
+              <span
+                class="video-badge"
+              >
+                ▶ VIDEO
+              </span>
+
+            </div>
+
+          `;
+
+        }
+
+        // ====================================================
+        // IMAGE
+        // ====================================================
+        else if (
+          exercise.imageUrl
+        ) {
+
+          mediaHtml = `
+
+            <div
+              class="exercise-media"
+            >
+
+              <img
+
+                src="${exercise.imageUrl}"
+
+                alt="${exercise.eng}"
+
+                loading="lazy"
+
+                onerror="this.src='${getFallbackImage(
+                  exercise.eng
+                )}'"
+
+              >
+
+            </div>
+
+          `;
+
+        }
+
+        // ====================================================
+        // FALLBACK
+        // ====================================================
+        else {
+
+          mediaHtml = `
+
+            <div
+              class="exercise-media"
+            >
+
+              <img
+
+                src="${getFallbackImage(
+                  exercise.eng
+                )}"
+
+                alt="${exercise.eng}"
+
+              >
+
+            </div>
+
+          `;
+
+        }
+
+
+        const savedWeight =
+
+          localStorage.getItem(
+            `weight-${id}`
+          ) || '';
+
+
+        const savedAchieved =
+
+          localStorage.getItem(
+            `achieved-${id}`
+          ) || '';
+
+
+        html += `
+
+          <div
+            class="exercise-card"
+          >
+
+            ${mediaHtml}
+
+
+            <div
+              class="exercise-header"
+            >
+
+              <h3>
+
+                ${
+                  exercise.eng ||
+                  'Exercise'
+                }
+
+              </h3>
+
+
+              <div
+                class="arabic"
+              >
+
+                ${
+                  exercise.arb ||
+                  ''
+                }
+
+              </div>
+
+
+              <span
+                class="muscle"
+              >
+
+                ${
+                  exercise.muscle ||
+                  '—'
+                }
+
+              </span>
+
+            </div>
+
+
+            <div
+              class="details"
+            >
+
+              <div
+                class="detail"
+              >
+
+                <span
+                  class="detail-label"
+                >
+                  Sets
+                </span>
+
+                <span
+                  class="detail-value"
+                >
+
+                  ${
+                    exercise.sets ||
+                    '—'
+                  }
+
+                </span>
+
+              </div>
+
+
+              <div
+                class="detail"
+              >
+
+                <span
+                  class="detail-label"
+                >
+                  Reps
+                </span>
+
+                <span
+                  class="detail-value"
+                >
+
+                  ${
+                    exercise.reps ||
+                    '—'
+                  }
+
+                </span>
+
+              </div>
+
+
+              <div
+                class="detail"
+              >
+
+                <span
+                  class="detail-label"
+                >
+                  Rest
+                </span>
+
+                <span
+                  class="detail-value"
+                >
+
+                  ${
+                    exercise.rest ||
+                    '—'
+                  }
+
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div
+              class="inputs"
+            >
+
+              <div
+                class="input-group"
+              >
+
+                <label
+                  for="weight-${id}"
+                >
+
+                  🏋️ Weight
+
+                </label>
+
+
+                <input
+
+                  id="weight-${id}"
+
+                  type="text"
+
+                  placeholder="e.g. 20 kg"
+
+                  value="${savedWeight}"
+
+                >
+
+              </div>
+
+
+              <div
+                class="input-group"
+              >
+
+                <label
+                  for="achieved-${id}"
+                >
+
+                  ✅ Reps Achieved
+
+                </label>
+
+
+                <input
+
+                  id="achieved-${id}"
+
+                  type="text"
+
+                  placeholder="e.g. 8, 8, 7"
+
+                  value="${savedAchieved}"
+
+                >
+
+              </div>
+
+            </div>
+
           </div>
-          <div class="input-group">
-            <label for="achieved-${id}">✅ Reps Achieved</label>
-            <input id="achieved-${id}" type="text" placeholder="e.g. 8, 8, 7" value="${savedAchieved}">
-          </div>
-        </div>
+
+        `;
+
+      }
+    );
+
+
+  html += `
+
       </div>
-    `;
-  });
 
-  html += `</div></div>`;
-  contentContainer.innerHTML = html;
+    </div>
+
+  `;
+
+
+  contentContainer.innerHTML =
+    html;
+
 }
+
 
 // ============================================================
 // SAVE PROGRESS
 // ============================================================
-function saveProgress() {
-  if (!currentWorkoutData || currentWorkoutData.length === 0) {
-    showSaveMessage('⚠️ No workout data to save', 'error');
+async function saveProgress() {
+
+  const sessionMap =
+    buildSessionMap();
+
+
+  const session =
+    sessionMap[
+      activeSessionIndex
+    ];
+
+
+  if (
+    !session ||
+    !session.exercises
+  ) {
+
+    showSaveMessage(
+
+      '⚠️ No workout data to save',
+
+      'error'
+
+    );
+
     return;
+
   }
 
-  let savedCount = 0;
 
-  currentWorkoutData.forEach((section, sectionIndex) => {
-    if (!section.exercises) return;
-    section.exercises.forEach((exercise, exerciseIndex) => {
-      const id = `${sectionIndex}-${exerciseIndex}`;
-      const weight = document.getElementById(`weight-${id}`)?.value || '';
-      const achieved = document.getElementById(`achieved-${id}`)?.value || '';
+  let savedCount =
+    0;
 
-      if (weight || achieved) {
-        localStorage.setItem(`weight-${id}`, weight);
-        localStorage.setItem(`achieved-${id}`, achieved);
-        savedCount++;
-      }
-    });
-  });
 
-  if (savedCount > 0) {
-    showSaveMessage(`✅ Saved ${savedCount} entries!`, 'success');
+  for (
+    let i = 0;
+    i <
+    session.exercises.length;
+    i++
+  ) {
+
+    const exercise =
+      session.exercises[i];
+
+
+    const id =
+
+      `${activeWeekIndex}-` +
+
+      `${session.dayIndex}-` +
+
+      `${i}`;
+
+
+    const weight =
+      document
+        .getElementById(
+          `weight-${id}`
+        )
+        ?.value ||
+      '';
+
+
+    const achieved =
+      document
+        .getElementById(
+          `achieved-${id}`
+        )
+        ?.value ||
+      '';
+
+
+    if (
+      weight ||
+      achieved
+    ) {
+
+      localStorage.setItem(
+
+        `weight-${id}`,
+
+        weight
+
+      );
+
+
+      localStorage.setItem(
+
+        `achieved-${id}`,
+
+        achieved
+
+      );
+
+
+      // Save to Google Sheet
+      await callApi(
+
+        'saveProgress',
+
+        {
+
+          username:
+            currentUsername,
+
+          week:
+            currentWorkoutData[
+              activeWeekIndex
+            ].weekLabel,
+
+          day:
+            session.dayName,
+
+          major:
+            exercise.major,
+
+          exercise:
+            exercise.eng,
+
+          weight:
+            weight,
+
+          achievedReps:
+            achieved
+
+        }
+
+      );
+
+
+      savedCount++;
+
+    }
+
+  }
+
+
+  if (
+    savedCount > 0
+  ) {
+
+    showSaveMessage(
+
+      `✅ Saved ${savedCount} entries!`,
+
+      'success'
+
+    );
+
   } else {
-    showSaveMessage('ℹ️ No data to save. Enter some weights or reps first.', 'error');
+
+    showSaveMessage(
+
+      'ℹ️ No data to save.',
+
+      'error'
+
+    );
+
   }
+
 }
 
-// ============================================================
-// SHOW MESSAGES
-// ============================================================
-function showLoginMessage(text, type) {
-  const el = document.getElementById('loginMessage');
-  el.textContent = text;
-  el.className = 'message ' + type;
-  el.style.display = 'block';
-  if (type === 'success' || type === 'info') {
-    setTimeout(() => { el.style.display = 'none'; }, 5000);
-  }
-}
-
-function showSaveMessage(text, type) {
-  const el = document.getElementById('saveMessage');
-  el.textContent = text;
-  el.className = 'save-message ' + type;
-  el.style.display = 'inline';
-  setTimeout(() => { el.style.display = 'none'; }, 4000);
-}
 
 // ============================================================
-// KEYBOARD SHORTCUTS
+// LOGIN MESSAGE
 // ============================================================
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.key === 's') {
-    e.preventDefault();
-    saveProgress();
+function showLoginMessage(
+  text,
+  type
+) {
+
+  const el =
+    document.getElementById(
+      'loginMessage'
+    );
+
+
+  el.textContent =
+    text;
+
+
+  el.className =
+    'message ' +
+    type;
+
+
+  el.style.display =
+    'block';
+
+
+  if (
+    type === 'success' ||
+    type === 'info'
+  ) {
+
+    setTimeout(
+      () => {
+
+        el.style.display =
+          'none';
+
+      },
+
+      5000
+    );
+
   }
-});
+
+}
+
+
+// ============================================================
+// SAVE MESSAGE
+// ============================================================
+function showSaveMessage(
+  text,
+  type
+) {
+
+  const el =
+    document.getElementById(
+      'saveMessage'
+    );
+
+
+  el.textContent =
+    text;
+
+
+  el.className =
+    'save-message ' +
+    type;
+
+
+  el.style.display =
+    'inline';
+
+
+  setTimeout(
+    () => {
+
+      el.style.display =
+        'none';
+
+    },
+
+    4000
+  );
+
+}
+
+
+// ============================================================
+// AUTO LOGIN
+// ============================================================
+const savedUsername =
+
+  localStorage.getItem(
+    STORAGE_KEY_USER
+  );
+
+
+if (
+  savedUsername
+) {
+
+  document
+    .getElementById(
+      'usernameInput'
+    )
+    .value =
+    savedUsername;
+
+
+  currentUsername =
+    savedUsername;
+
+
+  window.addEventListener(
+    'load',
+    function() {
+
+      setTimeout(
+        login,
+        500
+      );
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// CTRL + S
+// ============================================================
+document.addEventListener(
+
+  'keydown',
+
+  function(e) {
+
+    if (
+      e.ctrlKey &&
+      e.key.toLowerCase() ===
+      's'
+    ) {
+
+      e.preventDefault();
+
+      saveProgress();
+
+    }
+
+  }
+
+);
+
 </script>
 
 </body>
