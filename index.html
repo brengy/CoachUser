@@ -387,39 +387,63 @@
 </div>
 
 <script>
-
 // ============================================================
-// API CONFIGURATION
+// API
 // ============================================================
-const API_URL =
-'https://script.google.com/macros/s/AKfycbwptW5KKJvwNR3bfSzQ63zs30hJNFXBO0-cEFdk43Br7nR3c2dO84wXugq4AzGYVBMOXQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwptW5KKJvwNR3bfSzQ63zs30hJNFXBO0-cEFdk43Br7nR3c2dO84wXugq4AzGYVBMOXQ/exec';
 
 const STORAGE_KEY_USER = 'workout_username';
 
-// ============================================================
-// GLOBAL VARIABLES
-// ============================================================
-let currentWorkoutData = [];
+let currentUsername = '';
+let currentApiData = null;
+
+let currentWeeks = [];
 let currentPipeline = [];
+
 let activeWeekIndex = 0;
 let activeSessionIndex = 0;
-let currentUsername = '';
 
 
 // ============================================================
-// NORMALIZE TEXT
-// Used to safely compare Week / Day / Major values
+// YOUTUBE THUMBNAIL
 // ============================================================
-function normalizeText(value) {
-  return String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
+function getYouTubeThumbnail(videoUrl) {
+
+  if (!videoUrl) return null;
+
+  videoUrl = String(videoUrl).trim();
+
+  let videoId = null;
+
+  let match;
+
+  if (videoUrl.includes('youtube.com/shorts/')) {
+    match = videoUrl.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+
+  } else if (videoUrl.includes('watch?v=')) {
+    match = videoUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+
+  } else if (videoUrl.includes('youtu.be/')) {
+    match = videoUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+
+  } else if (videoUrl.includes('embed/')) {
+    match = videoUrl.match(/embed\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+  }
+
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }
+
+  return null;
 }
 
 
 // ============================================================
-// GET FALLBACK IMAGE
+// FALLBACK IMAGE
 // ============================================================
 function getFallbackImage(exerciseName) {
 
@@ -433,17 +457,7 @@ function getFallbackImage(exerciseName) {
     '#98D8C8',
     '#F7DC6F',
     '#BB8FCE',
-    '#85C1E9',
-    '#F8C471',
-    '#82E0AA',
-    '#F1948A',
-    '#85929E',
-    '#73C6B6',
-    '#E59866',
-    '#AF7AC5',
-    '#5DADE2',
-    '#58D68D',
-    '#F5B7B1'
+    '#85C1E9'
   ];
 
   let hash = 0;
@@ -472,9 +486,9 @@ function getFallbackImage(exerciseName) {
             rx="10"/>
 
       <text x="200"
-            y="115"
+            y="125"
             font-family="Arial"
-            font-size="80"
+            font-size="90"
             font-weight="bold"
             fill="white"
             text-anchor="middle"
@@ -483,22 +497,20 @@ function getFallbackImage(exerciseName) {
       </text>
 
       <text x="200"
-            y="160"
+            y="180"
             font-family="Arial"
             font-size="28"
-            font-weight="bold"
             fill="white"
             text-anchor="middle">
         💪
       </text>
 
       <text x="200"
-            y="200"
+            y="220"
             font-family="Arial"
-            font-size="16"
+            font-size="15"
             fill="white"
-            text-anchor="middle"
-            opacity="0.95">
+            text-anchor="middle">
         ${exerciseName.length > 25
           ? exerciseName.substring(0, 25) + '...'
           : exerciseName}
@@ -510,277 +522,32 @@ function getFallbackImage(exerciseName) {
 
 
 // ============================================================
-// GET YOUTUBE VIDEO ID
-// ============================================================
-function getYouTubeVideoId(videoUrl) {
-
-  if (!videoUrl) return null;
-
-  const url =
-    String(videoUrl).trim();
-
-  let match;
-
-  // youtube.com/watch?v=XXXXXXXXXXX
-  match = url.match(
-    /youtube\.com\/watch\?[^#]*v=([a-zA-Z0-9_-]{11})/
-  );
-
-  if (match) {
-    return match[1];
-  }
-
-  // youtu.be/XXXXXXXXXXX
-  match = url.match(
-    /youtu\.be\/([a-zA-Z0-9_-]{11})/
-  );
-
-  if (match) {
-    return match[1];
-  }
-
-  // youtube.com/shorts/XXXXXXXXXXX
-  match = url.match(
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
-  );
-
-  if (match) {
-    return match[1];
-  }
-
-  // youtube.com/embed/XXXXXXXXXXX
-  match = url.match(
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
-  );
-
-  if (match) {
-    return match[1];
-  }
-
-  return null;
-}
-
-
-// ============================================================
-// GET YOUTUBE THUMBNAIL
-// ============================================================
-function getYouTubeThumbnail(videoUrl) {
-
-  const videoId =
-    getYouTubeVideoId(videoUrl);
-
-  if (!videoId) {
-    return null;
-  }
-
-  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-}
-
-
-// ============================================================
-// GET WORKOUT SECTION FOR EXACT WEEK + DAY
-//
-// THIS IS THE IMPORTANT FIX.
-//
-// We do NOT use:
-// currentWorkoutData[dayIndex]
-//
-// Instead we find the exact section belonging to:
-// Week + Day
-//
-// This prevents Day 1 from displaying Day 1 + Day 2.
-// ============================================================
-function getSectionForDay(weekLabel, dayLabel) {
-
-  if (!currentWorkoutData ||
-      currentWorkoutData.length === 0) {
-    return null;
-  }
-
-  const targetWeek =
-    normalizeText(weekLabel);
-
-  const targetDay =
-    normalizeText(dayLabel);
-
-  // First: exact Week + Day match
-  let section =
-    currentWorkoutData.find(item => {
-
-      return normalizeText(item.week) === targetWeek &&
-             normalizeText(item.day) === targetDay;
-
-    });
-
-  if (section) {
-    return section;
-  }
-
-  // ----------------------------------------------------------
-  // BACKWARD COMPATIBILITY
-  //
-  // If old Apps Script does not return week/day on sections,
-  // try to match by title/day label.
-  // ----------------------------------------------------------
-  section =
-    currentWorkoutData.find(item => {
-
-      return normalizeText(item.title) === targetDay ||
-             normalizeText(item.day) === targetDay;
-
-    });
-
-  return section || null;
-}
-
-
-// ============================================================
-// BUILD SESSION MAP
-// ============================================================
-function buildSessionMap() {
-
-  if (!currentPipeline ||
-      currentPipeline.length === 0 ||
-      activeWeekIndex >= currentPipeline.length) {
-
-    return [];
-  }
-
-  const week =
-    currentPipeline[activeWeekIndex];
-
-  if (!week || !week.days) {
-    return [];
-  }
-
-  const sessionMap = [];
-
-  let sessionCounter = 1;
-
-  week.days.forEach((day, index) => {
-
-    const isRest =
-      String(day.type || '').toLowerCase() === 'rest';
-
-    if (isRest) {
-      return;
-    }
-
-    const section =
-      getSectionForDay(
-        week.weekLabel,
-        day.label
-      );
-
-    const hasExercises =
-      section &&
-      section.exercises &&
-      section.exercises.length > 0;
-
-    sessionMap.push({
-
-      dayIndex: index,
-
-      label:
-        'Session ' + sessionCounter,
-
-      hasExercises:
-        hasExercises,
-
-      dayName:
-        day.label,
-
-      weekLabel:
-        week.weekLabel,
-
-      section:
-        section
-
-    });
-
-    sessionCounter++;
-
-  });
-
-  return sessionMap;
-}
-
-
-// ============================================================
-// LOAD SAVED USER
-// ============================================================
-const savedUsername =
-  localStorage.getItem(STORAGE_KEY_USER);
-
-if (savedUsername) {
-
-  document.getElementById(
-    'usernameInput'
-  ).value = savedUsername;
-
-  currentUsername =
-    savedUsername;
-
-  window.addEventListener(
-    'load',
-    function() {
-
-      setTimeout(
-        login,
-        500
-      );
-
-    }
-  );
-}
-
-
-// ============================================================
 // API CALL
 // ============================================================
-async function callApi(
-  action,
-  data = {}
-) {
+async function callApi(action, data = {}) {
 
   try {
 
-    const params =
-      new URLSearchParams();
+    const params = new URLSearchParams();
 
-    params.append(
-      'action',
-      action
-    );
+    params.append('action', action);
 
-    Object.keys(data).forEach(
-      key => {
+    Object.keys(data).forEach(key => {
 
-        if (
-          data[key] !== undefined &&
-          data[key] !== null &&
-          data[key] !== ''
-        ) {
-
-          params.append(
-            key,
-            data[key]
-          );
-
-        }
-
+      if (
+        data[key] !== undefined &&
+        data[key] !== null &&
+        data[key] !== ''
+      ) {
+        params.append(key, data[key]);
       }
-    );
+
+    });
 
     const url =
-      API_URL +
-      '?' +
-      params.toString();
+      API_URL + '?' + params.toString();
 
-    console.log(
-      'API Request:',
-      url
-    );
+    console.log('API Request:', url);
 
     const response =
       await fetch(url, {
@@ -788,12 +555,9 @@ async function callApi(
       });
 
     if (!response.ok) {
-
       throw new Error(
-        'HTTP Error ' +
-        response.status
+        'HTTP Error ' + response.status
       );
-
     }
 
     const result =
@@ -814,15 +578,12 @@ async function callApi(
     );
 
     showLoginMessage(
-      '❌ Error: ' +
-      error.message,
+      '❌ Error: ' + error.message,
       'error'
     );
 
     return null;
-
   }
-
 }
 
 
@@ -847,8 +608,7 @@ async function login() {
     return;
   }
 
-  currentUsername =
-    username;
+  currentUsername = username;
 
   localStorage.setItem(
     STORAGE_KEY_USER,
@@ -856,33 +616,30 @@ async function login() {
   );
 
   const btn =
-    document.getElementById(
-      'loginBtn'
-    );
+    document.getElementById('loginBtn');
 
   btn.disabled = true;
-
-  btn.textContent =
-    '⏳ Loading...';
+  btn.textContent = '⏳ Loading...';
 
   showLoginMessage(
     'Loading your workout plan...',
     'info'
   );
 
+
   const result =
     await callApi(
       'getWorkoutData',
       {
-        username:
-          username
+        username: username
       }
     );
 
-  btn.disabled = false;
 
+  btn.disabled = false;
   btn.textContent =
     '📥 Load My Workout';
+
 
   if (
     !result ||
@@ -890,11 +647,8 @@ async function login() {
   ) {
 
     showLoginMessage(
-      'Error loading data: ' +
-      (
-        result?.message ||
-        'Unknown error'
-      ),
+      '❌ Error loading data: ' +
+      (result?.message || 'Unknown error'),
       'error'
     );
 
@@ -902,12 +656,22 @@ async function login() {
   }
 
 
-  // ----------------------------------------------------------
-  // STORE DATA
-  // ----------------------------------------------------------
-  currentWorkoutData =
-    Array.isArray(result.sections)
-      ? result.sections
+  // ========================================================
+  // IMPORTANT:
+  // NEW API STRUCTURE
+  //
+  // result.weeks
+  // result.pipeline
+  // result.allUsers
+  //
+  // NOT result.sections
+  // ========================================================
+
+  currentApiData = result;
+
+  currentWeeks =
+    Array.isArray(result.weeks)
+      ? result.weeks
       : [];
 
   currentPipeline =
@@ -917,8 +681,8 @@ async function login() {
 
 
   console.log(
-    'Workout Sections:',
-    currentWorkoutData
+    'Workout Weeks:',
+    currentWeeks
   );
 
   console.log(
@@ -928,11 +692,12 @@ async function login() {
 
 
   if (
+    currentWeeks.length === 0 &&
     currentPipeline.length === 0
   ) {
 
     showLoginMessage(
-      'No workout pipeline found.',
+      '❌ No workout data found for this user.',
       'error'
     );
 
@@ -940,70 +705,35 @@ async function login() {
   }
 
 
-  // ----------------------------------------------------------
-  // CHECK WORKOUT DATA
-  // ----------------------------------------------------------
-  const hasExercises =
-    currentWorkoutData.some(
-      section =>
-        section &&
-        Array.isArray(section.exercises) &&
-        section.exercises.length > 0
-    );
-
-  if (!hasExercises) {
-
-    showLoginMessage(
-      '❌ No workout exercises found. Please check your Excel structure.',
-      'error'
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // RESET NAVIGATION
-  // ----------------------------------------------------------
   activeWeekIndex = 0;
-
   activeSessionIndex = 0;
 
 
-  // ----------------------------------------------------------
-  // SHOW UI
-  // ----------------------------------------------------------
-  document.getElementById(
-    'loginSection'
-  ).style.display = 'none';
+  document
+    .getElementById('loginSection')
+    .style.display = 'none';
 
-  document.getElementById(
-    'weekContainer'
-  ).classList.add('visible');
+  document
+    .getElementById('weekContainer')
+    .classList.add('visible');
 
-  document.getElementById(
-    'saveBar'
-  ).classList.add('visible');
+  document
+    .getElementById('saveBar')
+    .classList.add('visible');
 
-  document.getElementById(
-    'userDisplay'
-  ).textContent =
-    '👤 ' +
-    username;
+  document
+    .getElementById('userDisplay')
+    .textContent =
+      '👤 ' + username;
 
 
-  // ----------------------------------------------------------
-  // RENDER
-  // ----------------------------------------------------------
   renderAllTabs();
 
+
   showLoginMessage(
-    '✅ Welcome ' +
-    username +
-    '!',
+    '✅ Welcome ' + username + '!',
     'success'
   );
-
 }
 
 
@@ -1012,57 +742,316 @@ async function login() {
 // ============================================================
 function logout() {
 
-  currentUsername =
-    '';
+  currentUsername = '';
 
-  currentWorkoutData =
-    [];
+  currentApiData = null;
 
-  currentPipeline =
-    [];
+  currentWeeks = [];
 
-  activeWeekIndex =
-    0;
+  currentPipeline = [];
 
-  activeSessionIndex =
-    0;
+  activeWeekIndex = 0;
 
-  document.getElementById(
-    'loginSection'
-  ).style.display =
-    'block';
+  activeSessionIndex = 0;
 
-  document.getElementById(
-    'weekContainer'
-  ).classList.remove(
-    'visible'
-  );
 
-  document.getElementById(
-    'saveBar'
-  ).classList.remove(
-    'visible'
-  );
+  document
+    .getElementById('loginSection')
+    .style.display = 'block';
 
-  document.getElementById(
-    'usernameInput'
-  ).value =
-    '';
+  document
+    .getElementById('weekContainer')
+    .classList.remove('visible');
 
-  document.getElementById(
-    'usernameInput'
-  ).focus();
+  document
+    .getElementById('saveBar')
+    .classList.remove('visible');
+
+  document
+    .getElementById('usernameInput')
+    .value = '';
+
+  document
+    .getElementById('usernameInput')
+    .focus();
+
 
   showLoginMessage(
     'Logged out successfully',
     'success'
   );
-
 }
 
 
 // ============================================================
-// RENDER ALL
+// GET ACTIVE WEEK
+// ============================================================
+function getActiveWeek() {
+
+  if (
+    !currentWeeks ||
+    activeWeekIndex >= currentWeeks.length
+  ) {
+    return null;
+  }
+
+  return currentWeeks[activeWeekIndex];
+}
+
+
+// ============================================================
+// GET SESSION MAP
+//
+// IMPORTANT FIX:
+// Sessions are mapped using the pipeline.
+// Exercises are later found using EXACT Week + Day.
+//
+// We DO NOT use:
+// currentWorkoutData[index]
+//
+// This was causing Day 1 / Day 2 mixing.
+// ============================================================
+function buildSessionMap() {
+
+  const week =
+    currentPipeline[activeWeekIndex];
+
+  if (
+    !week ||
+    !Array.isArray(week.days)
+  ) {
+    return [];
+  }
+
+
+  const sessions = [];
+
+  let sessionCounter = 1;
+
+
+  week.days.forEach(
+    (day, index) => {
+
+      const dayType =
+        String(day.type || '')
+          .toLowerCase();
+
+      if (dayType === 'rest') {
+        return;
+      }
+
+
+      sessions.push({
+
+        pipelineDayIndex: index,
+
+        dayLabel:
+          day.label,
+
+        label:
+          'Session ' +
+          sessionCounter
+
+      });
+
+
+      sessionCounter++;
+    }
+  );
+
+
+  return sessions;
+}
+
+
+// ============================================================
+// FIND EXACT WORKOUT SECTION
+//
+// This is the most important part.
+//
+// We match:
+//
+// Week 1 + Day 1
+// Week 1 + Day 2
+// Week 1 + Day 4
+//
+// instead of assuming array indexes match.
+//
+// ============================================================
+function getSectionForDay(
+  weekLabel,
+  dayLabel
+) {
+
+  if (
+    !currentWeeks ||
+    currentWeeks.length === 0
+  ) {
+    return null;
+  }
+
+
+  console.log(
+    'Searching section:',
+    weekLabel,
+    dayLabel
+  );
+
+
+  // ----------------------------------------------------------
+  // METHOD 1:
+  // New API structure:
+  //
+  // weeks = [
+  //   {
+  //     weekLabel: "Week 1",
+  //     days: [
+  //       {
+  //         dayLabel: "Day 1",
+  //         ...
+  //       }
+  //     ]
+  //   }
+  // ]
+  // ----------------------------------------------------------
+
+  let weekObject =
+    currentWeeks.find(
+      week =>
+        String(
+          week.weekLabel ||
+          week.week ||
+          week.label ||
+          ''
+        ).trim()
+        ===
+        String(weekLabel).trim()
+    );
+
+
+  if (!weekObject) {
+
+    console.warn(
+      'Week not found:',
+      weekLabel
+    );
+
+    return null;
+  }
+
+
+  const days =
+    Array.isArray(weekObject.days)
+      ? weekObject.days
+      : [];
+
+
+  // Exact day match first
+  let dayObject =
+    days.find(
+      day =>
+        String(
+          day.dayLabel ||
+          day.day ||
+          day.label ||
+          ''
+        ).trim()
+        ===
+        String(dayLabel).trim()
+    );
+
+
+  // ----------------------------------------------------------
+  // If the API uses an object keyed by day names
+  // ----------------------------------------------------------
+  if (
+    !dayObject &&
+    !Array.isArray(weekObject.days) &&
+    typeof weekObject.days === 'object'
+  ) {
+
+    dayObject =
+      weekObject.days[dayLabel];
+  }
+
+
+  if (!dayObject) {
+
+    console.warn(
+      'Day not found:',
+      weekLabel,
+      dayLabel
+    );
+
+    return null;
+  }
+
+
+  return dayObject;
+}
+
+
+// ============================================================
+// GET EXERCISES FOR CURRENT SESSION
+// ============================================================
+function getExercisesForSession(
+  session
+) {
+
+  if (!session) {
+    return [];
+  }
+
+
+  const week =
+    currentPipeline[activeWeekIndex];
+
+
+  if (!week) {
+    return [];
+  }
+
+
+  const section =
+    getSectionForDay(
+      week.weekLabel,
+      session.dayLabel
+    );
+
+
+  if (!section) {
+    return [];
+  }
+
+
+  // Support different possible API names
+  if (
+    Array.isArray(section.exercises)
+  ) {
+    return section.exercises;
+  }
+
+
+  if (
+    Array.isArray(section.workout)
+  ) {
+    return section.workout;
+  }
+
+
+  if (
+    Array.isArray(section.data)
+  ) {
+    return section.data;
+  }
+
+
+  return [];
+}
+
+
+// ============================================================
+// RENDER ALL TABS
 // ============================================================
 function renderAllTabs() {
 
@@ -1073,7 +1062,6 @@ function renderAllTabs() {
   renderSessionContent(
     activeSessionIndex
   );
-
 }
 
 
@@ -1087,19 +1075,20 @@ function renderWeekTabs() {
       'weekTabs'
     );
 
+
   if (
     !currentPipeline ||
     currentPipeline.length === 0
   ) {
 
-    container.innerHTML =
-      '';
+    container.innerHTML = '';
 
     return;
   }
 
-  let html =
-    '';
+
+  let html = '';
+
 
   currentPipeline.forEach(
     (week, index) => {
@@ -1107,19 +1096,25 @@ function renderWeekTabs() {
       const isActive =
         index === activeWeekIndex;
 
+
       const sessionCount =
-        week.days
+        Array.isArray(week.days)
           ? week.days.filter(
-              day =>
-                String(day.type || '')
-                  .toLowerCase() !== 'rest'
+              d =>
+                String(
+                  d.type || ''
+                ).toLowerCase()
+                !== 'rest'
             ).length
           : 0;
+
 
       html += `
 
         <button
-          class="week-tab ${isActive ? 'active' : ''}"
+          class="week-tab ${
+            isActive ? 'active' : ''
+          }"
           onclick="switchWeek(${index})">
 
           ${week.weekLabel}
@@ -1131,13 +1126,12 @@ function renderWeekTabs() {
         </button>
 
       `;
-
     }
   );
 
+
   container.innerHTML =
     html;
-
 }
 
 
@@ -1151,8 +1145,10 @@ function renderSessionTabs() {
       'sessionTabs'
     );
 
+
   const sessionMap =
     buildSessionMap();
+
 
   if (
     sessionMap.length === 0
@@ -1164,8 +1160,9 @@ function renderSessionTabs() {
     return;
   }
 
-  let html =
-    '';
+
+  let html = '';
+
 
   sessionMap.forEach(
     (session, index) => {
@@ -1173,15 +1170,29 @@ function renderSessionTabs() {
       const isActive =
         index === activeSessionIndex;
 
+
+      const exercises =
+        getExercisesForSession(
+          session
+        );
+
+
+      const hasWorkout =
+        exercises.length > 0;
+
+
       const icon =
-        session.hasExercises
+        hasWorkout
           ? '💪'
           : '📋';
+
 
       html += `
 
         <button
-          class="session-tab ${isActive ? 'active' : ''}"
+          class="session-tab ${
+            isActive ? 'active' : ''
+          }"
           onclick="switchSession(${index})">
 
           <span class="session-label">
@@ -1195,13 +1206,12 @@ function renderSessionTabs() {
         </button>
 
       `;
-
     }
   );
 
+
   container.innerHTML =
     html;
-
 }
 
 
@@ -1211,17 +1221,17 @@ function renderSessionTabs() {
 function switchWeek(index) {
 
   if (
-    index < 0 ||
+    index === activeWeekIndex ||
     index >= currentPipeline.length
   ) {
     return;
   }
 
-  activeWeekIndex =
-    index;
 
-  activeSessionIndex =
-    0;
+  activeWeekIndex = index;
+
+  activeSessionIndex = 0;
+
 
   renderWeekTabs();
 
@@ -1230,7 +1240,6 @@ function switchWeek(index) {
   renderSessionContent(
     activeSessionIndex
   );
-
 }
 
 
@@ -1239,25 +1248,35 @@ function switchWeek(index) {
 // ============================================================
 function switchSession(index) {
 
-  const sessionMap =
-    buildSessionMap();
-
   if (
-    index < 0 ||
-    index >= sessionMap.length
+    index === activeSessionIndex
   ) {
     return;
   }
 
-  activeSessionIndex =
-    index;
 
-  renderSessionTabs();
+  activeSessionIndex = index;
+
+
+  document
+    .querySelectorAll(
+      '.session-tab'
+    )
+    .forEach(
+      (tab, i) => {
+
+        tab.classList.toggle(
+          'active',
+          i === index
+        );
+
+      }
+    );
+
 
   renderSessionContent(
     index
   );
-
 }
 
 
@@ -1273,8 +1292,10 @@ function renderSessionContent(
       'workoutContent'
     );
 
+
   const sessionMap =
     buildSessionMap();
+
 
   if (
     sessionMap.length === 0 ||
@@ -1309,22 +1330,30 @@ function renderSessionContent(
     sessionMap[sessionIndex];
 
 
-  // ----------------------------------------------------------
-  // IMPORTANT:
-  // Get EXACT section matched by Week + Day
-  // ----------------------------------------------------------
-  const section =
-    session.section ||
-    getSectionForDay(
-      session.weekLabel,
-      session.dayName
+  const exercises =
+    getExercisesForSession(
+      session
     );
 
 
+  console.log(
+    'Rendering:',
+    currentPipeline[
+      activeWeekIndex
+    ]?.weekLabel,
+    session.dayLabel
+  );
+
+
+  console.log(
+    'Exercises:',
+    exercises
+  );
+
+
   if (
-    !section ||
-    !section.exercises ||
-    section.exercises.length === 0
+    !exercises ||
+    exercises.length === 0
   ) {
 
     contentContainer.innerHTML = `
@@ -1345,7 +1374,8 @@ function renderSessionContent(
 
 
   const major =
-    section.exercises[0]?.major ||
+    exercises[0]?.major ||
+    session.dayLabel ||
     'Workout';
 
 
@@ -1358,7 +1388,7 @@ function renderSessionContent(
         <div>
 
           <h2>
-            ${section.title || session.dayName}
+            ${session.dayLabel}
           </h2>
 
           <span class="major-badge">
@@ -1378,26 +1408,18 @@ function renderSessionContent(
   `;
 
 
-  // ==========================================================
-  // VARIABLE NUMBER OF EXERCISES
-  // No fixed length
-  // ==========================================================
-  section.exercises.forEach(
+  exercises.forEach(
     (exercise, exerciseIndex) => {
 
-      const id =
-        `${activeWeekIndex}-${sessionIndex}-${exerciseIndex}`;
-
-
-      // --------------------------------------------------------
-      // MEDIA URLS
-      // Preserve both fields
-      // --------------------------------------------------------
+      // ------------------------------------------------------
+      // Preserve exact media URLs from Apps Script
+      // ------------------------------------------------------
       const imageUrl =
         String(
           exercise.imageUrl ||
           ''
         ).trim();
+
 
       const videoUrl =
         String(
@@ -1406,35 +1428,59 @@ function renderSessionContent(
         ).trim();
 
 
-      const videoThumbnail =
+      console.log(
+        'Exercise:',
+        exercise.eng,
+        'Image:',
+        imageUrl,
+        'Video:',
+        videoUrl
+      );
+
+
+      const thumbnail =
         getYouTubeThumbnail(
           videoUrl
         );
 
 
-      let mediaHtml =
-        '';
+      let mediaHtml = '';
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // VIDEO
-      // --------------------------------------------------------
-      if (
-        videoUrl &&
-        videoThumbnail
-      ) {
+      // ------------------------------------------------------
+      if (videoUrl) {
+
+        const videoThumbnail =
+          thumbnail ||
+          imageUrl ||
+          getFallbackImage(
+            exercise.eng ||
+            'Exercise'
+          );
+
 
         mediaHtml = `
 
           <div
             class="exercise-media"
-            onclick="window.open('${videoUrl.replace(/'/g, "\\'")}', '_blank')">
+            onclick="window.open(
+              '${videoUrl.replace(/'/g, "\\'")}',
+              '_blank'
+            )">
 
             <img
               src="${videoThumbnail}"
               alt="${exercise.eng || 'Exercise'}"
               loading="lazy"
-              onerror="this.onerror=null;this.src='${imageUrl || getFallbackImage(exercise.eng || 'Exercise')}'">
+              onerror="
+                this.onerror=null;
+                this.src='${getFallbackImage(
+                  exercise.eng || 'Exercise'
+                )}'
+              "
+            >
 
             <div class="play-icon">
               ▶
@@ -1448,15 +1494,10 @@ function renderSessionContent(
 
         `;
 
-      }
-
-
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // IMAGE
-      // --------------------------------------------------------
-      else if (
-        imageUrl
-      ) {
+      // ------------------------------------------------------
+      } else if (imageUrl) {
 
         mediaHtml = `
 
@@ -1466,76 +1507,61 @@ function renderSessionContent(
               src="${imageUrl}"
               alt="${exercise.eng || 'Exercise'}"
               loading="lazy"
-              onerror="this.onerror=null;this.src='${getFallbackImage(exercise.eng || 'Exercise')}'">
+              onerror="
+                this.onerror=null;
+                this.src='${getFallbackImage(
+                  exercise.eng || 'Exercise'
+                )}'
+              "
+            >
 
           </div>
 
         `;
 
-      }
-
-
-      // --------------------------------------------------------
-      // VIDEO URL EXISTS BUT THUMBNAIL COULD NOT BE EXTRACTED
-      // --------------------------------------------------------
-      else if (
-        videoUrl
-      ) {
-
-        mediaHtml = `
-
-          <div
-            class="exercise-media"
-            onclick="window.open('${videoUrl.replace(/'/g, "\\'")}', '_blank')">
-
-            <img
-              src="${getFallbackImage(exercise.eng || 'Exercise')}"
-              alt="${exercise.eng || 'Exercise'}">
-
-            <div class="play-icon">
-              ▶
-            </div>
-
-            <span class="video-badge">
-              ▶ VIDEO
-            </span>
-
-          </div>
-
-        `;
-
-      }
-
-
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // FALLBACK
-      // --------------------------------------------------------
-      else {
+      // ------------------------------------------------------
+      } else {
 
         mediaHtml = `
 
           <div class="exercise-media">
 
             <img
-              src="${getFallbackImage(exercise.eng || 'Exercise')}"
-              alt="${exercise.eng || 'Exercise'}">
+              src="${getFallbackImage(
+                exercise.eng ||
+                'Exercise'
+              )}"
+              alt="${exercise.eng || 'Exercise'}"
+
+            >
 
           </div>
 
         `;
-
       }
+
+
+      // ------------------------------------------------------
+      // UNIQUE ID
+      //
+      // Include week + day + exercise
+      // so data does not mix between sessions.
+      // ------------------------------------------------------
+      const safeId =
+        `${activeWeekIndex}-${sessionIndex}-${exerciseIndex}`;
 
 
       const savedWeight =
         localStorage.getItem(
-          `weight-${currentUsername}-${id}`
+          `weight-${safeId}`
         ) || '';
 
 
       const savedAchieved =
         localStorage.getItem(
-          `achieved-${currentUsername}-${id}`
+          `achieved-${safeId}`
         ) || '';
 
 
@@ -1544,6 +1570,7 @@ function renderSessionContent(
         <div class="exercise-card">
 
           ${mediaHtml}
+
 
           <div class="exercise-header">
 
@@ -1610,17 +1637,16 @@ function renderSessionContent(
             <div class="input-group">
 
               <label
-                for="weight-${id}">
-
+                for="weight-${safeId}">
                 🏋️ Weight
-
               </label>
 
               <input
-                id="weight-${id}"
+                id="weight-${safeId}"
                 type="text"
                 placeholder="e.g. 20 kg"
-                value="${savedWeight}">
+                value="${savedWeight}"
+              >
 
             </div>
 
@@ -1628,17 +1654,16 @@ function renderSessionContent(
             <div class="input-group">
 
               <label
-                for="achieved-${id}">
-
+                for="achieved-${safeId}">
                 ✅ Reps Achieved
-
               </label>
 
               <input
-                id="achieved-${id}"
+                id="achieved-${safeId}"
                 type="text"
                 placeholder="e.g. 8, 8, 7"
-                value="${savedAchieved}">
+                value="${savedAchieved}"
+              >
 
             </div>
 
@@ -1647,7 +1672,6 @@ function renderSessionContent(
         </div>
 
       `;
-
     }
   );
 
@@ -1663,7 +1687,6 @@ function renderSessionContent(
 
   contentContainer.innerHTML =
     html;
-
 }
 
 
@@ -1672,9 +1695,12 @@ function renderSessionContent(
 // ============================================================
 function saveProgress() {
 
+  const sessionMap =
+    buildSessionMap();
+
+
   if (
-    !currentWorkoutData ||
-    currentWorkoutData.length === 0
+    sessionMap.length === 0
   ) {
 
     showSaveMessage(
@@ -1686,28 +1712,19 @@ function saveProgress() {
   }
 
 
-  const sessionMap =
-    buildSessionMap();
-
-  let savedCount =
-    0;
+  let savedCount = 0;
 
 
   sessionMap.forEach(
     (session, sessionIndex) => {
 
-      const section =
-        session.section;
-
-      if (
-        !section ||
-        !section.exercises
-      ) {
-        return;
-      }
+      const exercises =
+        getExercisesForSession(
+          session
+        );
 
 
-      section.exercises.forEach(
+      exercises.forEach(
         (exercise, exerciseIndex) => {
 
           const id =
@@ -1732,17 +1749,18 @@ function saveProgress() {
           ) {
 
             localStorage.setItem(
-              `weight-${currentUsername}-${id}`,
+              `weight-${id}`,
               weight
             );
 
+
             localStorage.setItem(
-              `achieved-${currentUsername}-${id}`,
+              `achieved-${id}`,
               achieved
             );
 
-            savedCount++;
 
+            savedCount++;
           }
 
         }
@@ -1767,9 +1785,7 @@ function saveProgress() {
       'ℹ️ No data to save. Enter some weights or reps first.',
       'error'
     );
-
   }
-
 }
 
 
@@ -1786,15 +1802,15 @@ function showLoginMessage(
       'loginMessage'
     );
 
-  el.textContent =
-    text;
+
+  el.textContent = text;
 
   el.className =
-    'message ' +
-    type;
+    'message ' + type;
 
   el.style.display =
     'block';
+
 
   if (
     type === 'success' ||
@@ -1803,16 +1819,12 @@ function showLoginMessage(
 
     setTimeout(
       () => {
-
         el.style.display =
           'none';
-
       },
       5000
     );
-
   }
-
 }
 
 
@@ -1829,31 +1841,64 @@ function showSaveMessage(
       'saveMessage'
     );
 
-  el.textContent =
-    text;
+
+  el.textContent = text;
 
   el.className =
-    'save-message ' +
-    type;
+    'save-message ' + type;
 
   el.style.display =
     'inline';
 
+
   setTimeout(
     () => {
-
       el.style.display =
         'none';
-
     },
     4000
   );
-
 }
 
 
 // ============================================================
-// KEYBOARD SHORTCUT
+// AUTO LOGIN
+// ============================================================
+const savedUsername =
+  localStorage.getItem(
+    STORAGE_KEY_USER
+  );
+
+
+if (savedUsername) {
+
+  document
+    .getElementById(
+      'usernameInput'
+    )
+    .value =
+      savedUsername;
+
+  currentUsername =
+    savedUsername;
+
+
+  window.addEventListener(
+    'load',
+    function() {
+
+      setTimeout(
+        login,
+        500
+      );
+
+    }
+  );
+}
+
+
+// ============================================================
+// ENTER KEY
 // ============================================================
 document.addEventListener(
   'keydown',
@@ -1861,20 +1906,18 @@ document.addEventListener(
 
     if (
       e.ctrlKey &&
-      e.key.toLowerCase() === 's'
+      e.key === 's'
     ) {
 
       e.preventDefault();
 
       saveProgress();
-
     }
 
   }
 );
 
 </script>
-
 
 </body>
 </html>
