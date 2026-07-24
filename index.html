@@ -194,7 +194,7 @@
   .exercise-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
   .exercise-image {
     width: 100%;
-    height: 160px;
+    height: 180px;
     background: #f3f4f6;
     display: flex;
     align-items: center;
@@ -202,7 +202,11 @@
     overflow: hidden;
     position: relative;
   }
-  .exercise-image img { width: 100%; height: 100%; object-fit: cover; }
+  .exercise-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   .exercise-image .placeholder {
     color: #6b7280;
     font-size: 14px;
@@ -220,6 +224,19 @@
   .exercise-header h3 { margin: 0 0 4px; font-size: 18px; }
   .arabic { direction: rtl; text-align: right; font-size: 15px; color: #6b7280; margin-bottom: 6px; }
   .muscle { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+  .btn-video {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 12px;
+    background: #dc2626;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: 0.2s;
+  }
+  .btn-video:hover { background: #b91c1c; }
   .details {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -361,7 +378,7 @@
 // ============================================================
 // HARDCODED API URL
 // ============================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbwpM9eft1QLRYmcOtSizkUZw0-avmZrh1NqIfSXbwND-QZWcb_jI9Fr6smNia_7Eqlpyw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwNCZAjL8vG3hoO_eFNbeRV4Qq1m71GZJtgCvwJ4rpc73Bpm3JQ3epxl93AnRpqpX1gOA/exec';
 
 // ============================================================
 // CONFIGURATION
@@ -373,12 +390,77 @@ let activeWeekIndex = 0;
 let activeSessionIndex = 0;
 let currentUsername = '';
 
-const fallbackImages = [
-  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop'
-];
+// ============================================================
+// GET EXERCISE-SPECIFIC FALLBACK IMAGE
+// ============================================================
+function getFallbackImage(exerciseName) {
+  // Unique colors for each exercise
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+    '#F8C471', '#82E0AA', '#F1948A', '#85929E', '#73C6B6',
+    '#E59866', '#AF7AC5', '#5DADE2', '#58D68D', '#F5B7B1'
+  ];
+  
+  // Create a consistent color for each exercise
+  let hash = 0;
+  for (let i = 0; i < exerciseName.length; i++) {
+    hash = exerciseName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorIndex = Math.abs(hash) % colors.length;
+  const color = colors[colorIndex];
+  
+  // Get first letter for the avatar
+  const firstLetter = exerciseName.charAt(0).toUpperCase();
+  
+  // Return an SVG with exercise name
+  return `data:image/svg+xml,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+      <rect width="400" height="300" fill="${color}" rx="10"/>
+      <text x="200" y="115" font-family="Arial" font-size="80" font-weight="bold" fill="white" text-anchor="middle" opacity="0.3">
+        ${firstLetter}
+      </text>
+      <text x="200" y="160" font-family="Arial" font-size="28" font-weight="bold" fill="white" text-anchor="middle">
+        💪
+      </text>
+      <text x="200" y="200" font-family="Arial" font-size="16" fill="white" text-anchor="middle" opacity="0.95">
+        ${exerciseName.length > 25 ? exerciseName.substring(0, 25) + '...' : exerciseName}
+      </text>
+    </svg>
+  `)}`;
+}
+
+// ============================================================
+// BUILD SESSION MAP DYNAMICALLY FROM DATA
+// ============================================================
+function buildSessionMap() {
+  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
+    return [];
+  }
+  
+  const week = currentPipeline[activeWeekIndex];
+  if (!week || !week.days) return [];
+  
+  const sessionMap = [];
+  let sessionCounter = 1;
+  
+  week.days.forEach((day, index) => {
+    if (day.type !== 'rest') {
+      const dayData = currentWorkoutData[index];
+      const hasExercises = dayData && dayData.exercises && dayData.exercises.length > 0;
+      
+      sessionMap.push({
+        dayIndex: index,
+        label: 'Session ' + sessionCounter,
+        hasExercises: hasExercises,
+        dayName: day.label
+      });
+      sessionCounter++;
+    }
+  });
+  
+  return sessionMap;
+}
 
 // Load saved username
 const savedUsername = localStorage.getItem(STORAGE_KEY_USER);
@@ -502,40 +584,7 @@ function renderWeekTabs() {
 }
 
 // ============================================================
-// BUILD SESSION MAP DYNAMICALLY FROM DATA
-// ============================================================
-function buildSessionMap() {
-  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
-    return [];
-  }
-  
-  const week = currentPipeline[activeWeekIndex];
-  if (!week || !week.days) return [];
-  
-  const sessionMap = [];
-  let sessionCounter = 1;
-  
-  week.days.forEach((day, index) => {
-    // Only include workout days (skip rest days)
-    if (day.type !== 'rest') {
-      const dayData = currentWorkoutData[index];
-      const hasExercises = dayData && dayData.exercises && dayData.exercises.length > 0;
-      
-      sessionMap.push({
-        dayIndex: index,
-        label: 'Session ' + sessionCounter,
-        hasExercises: hasExercises,
-        dayName: day.label
-      });
-      sessionCounter++;
-    }
-  });
-  
-  return sessionMap;
-}
-
-// ============================================================
-// RENDER SESSION TABS - DYNAMIC
+// RENDER SESSION TABS
 // ============================================================
 function renderSessionTabs() {
   const container = document.getElementById('sessionTabs');
@@ -597,7 +646,7 @@ function switchSession(index) {
 }
 
 // ============================================================
-// RENDER SESSION CONTENT - DYNAMIC
+// RENDER SESSION CONTENT
 // ============================================================
 function renderSessionContent(sessionIndex) {
   const contentContainer = document.getElementById('workoutContent');
@@ -655,7 +704,9 @@ function renderSessionContent(sessionIndex) {
 
   section.exercises.forEach((exercise, exerciseIndex) => {
     const id = `${dayIndex}-${exerciseIndex}`;
-    const imageUrl = exercise.imageUrl || fallbackImages[0];
+    
+    // Use real image if available, otherwise use fallback
+    const imageUrl = exercise.imageUrl || getFallbackImage(exercise.eng);
     const savedWeight = localStorage.getItem(`weight-${id}`) || '';
     const savedAchieved = localStorage.getItem(`achieved-${id}`) || '';
 
@@ -663,17 +714,14 @@ function renderSessionContent(sessionIndex) {
       <div class="exercise-card">
         <div class="exercise-image">
           <img src="${imageUrl}" alt="${exercise.eng}" loading="lazy" 
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-          <div class="placeholder" style="display:none;">
-            <span class="icon">💪</span>
-            <span>${exercise.eng}</span>
-          </div>
+               onerror="this.src='${getFallbackImage(exercise.eng)}'">
         </div>
 
         <div class="exercise-header">
           <h3>${exercise.eng || 'Exercise'}</h3>
           <div class="arabic">${exercise.arb || ''}</div>
           <span class="muscle">${exercise.muscle || '—'}</span>
+          ${exercise.videoUrl ? `<a href="${exercise.videoUrl}" target="_blank" class="btn-video">▶️ Watch</a>` : ''}
         </div>
 
         <div class="details">
