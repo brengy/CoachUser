@@ -133,7 +133,7 @@
   .week-tab .week-label { display: block; font-size: 11px; font-weight: normal; opacity: 0.7; }
   .week-tab.active .week-label { opacity: 0.9; }
 
-  /* ===== SESSION TABS - DYNAMIC GRID ===== */
+  /* ===== SESSION TABS ===== */
   .session-tabs-container {
     display: flex;
     gap: 8px;
@@ -192,7 +192,9 @@
     transition: 0.2s;
   }
   .exercise-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-  .exercise-image {
+
+  /* ===== EXERCISE MEDIA ===== */
+  .exercise-media {
     width: 100%;
     height: 180px;
     background: #f3f4f6;
@@ -201,42 +203,53 @@
     justify-content: center;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
   }
-  .exercise-image img {
+  .exercise-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  .exercise-image .placeholder {
-    color: #6b7280;
-    font-size: 14px;
-    text-align: center;
-    padding: 10px;
+  .exercise-media .play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.7);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
+    font-size: 30px;
+    pointer-events: none;
+    border: 3px solid white;
+    opacity: 0.9;
+    transition: 0.2s;
   }
-  .exercise-image .placeholder .icon { font-size: 36px; display: block; margin-bottom: 8px; }
+  .exercise-media:hover .play-icon {
+    background: rgba(255,0,0,0.8);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  .exercise-media .video-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,0,0,0.9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    pointer-events: none;
+  }
+
   .exercise-header { padding: 14px 18px 8px; border-bottom: 1px solid #f3f4f6; }
   .exercise-header h3 { margin: 0 0 4px; font-size: 18px; }
   .arabic { direction: rtl; text-align: right; font-size: 15px; color: #6b7280; margin-bottom: 6px; }
   .muscle { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
-  .btn-video {
-    display: inline-block;
-    margin-top: 6px;
-    padding: 4px 12px;
-    background: #dc2626;
-    color: white;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: bold;
-    text-decoration: none;
-    transition: 0.2s;
-  }
-  .btn-video:hover { background: #b91c1c; }
   .details {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -316,7 +329,8 @@
     .session-tab .session-label { font-size: 10px; }
     .session-tab .session-icon { font-size: 14px; }
     .exercise-grid { padding: 10px; }
-    .exercise-image { height: 140px; }
+    .exercise-media { height: 140px; }
+    .exercise-media .play-icon { width: 45px; height: 45px; font-size: 22px; }
     .inputs { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 400px) {
@@ -352,9 +366,7 @@
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
       </div>
       <div class="week-nav-container">
-        <!-- Week Tabs -->
         <div class="week-nav-tabs" id="weekTabs"></div>
-        <!-- Session Tabs (Dynamic) -->
         <div class="session-tabs-container" id="sessionTabs"></div>
       </div>
     </div>
@@ -394,7 +406,6 @@ let currentUsername = '';
 // GET EXERCISE-SPECIFIC FALLBACK IMAGE
 // ============================================================
 function getFallbackImage(exerciseName) {
-  // Unique colors for each exercise
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
     '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
@@ -402,7 +413,6 @@ function getFallbackImage(exerciseName) {
     '#E59866', '#AF7AC5', '#5DADE2', '#58D68D', '#F5B7B1'
   ];
   
-  // Create a consistent color for each exercise
   let hash = 0;
   for (let i = 0; i < exerciseName.length; i++) {
     hash = exerciseName.charCodeAt(i) + ((hash << 5) - hash);
@@ -410,28 +420,49 @@ function getFallbackImage(exerciseName) {
   const colorIndex = Math.abs(hash) % colors.length;
   const color = colors[colorIndex];
   
-  // Get first letter for the avatar
   const firstLetter = exerciseName.charAt(0).toUpperCase();
   
-  // Return an SVG with exercise name
   return `data:image/svg+xml,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
       <rect width="400" height="300" fill="${color}" rx="10"/>
-      <text x="200" y="115" font-family="Arial" font-size="80" font-weight="bold" fill="white" text-anchor="middle" opacity="0.3">
-        ${firstLetter}
-      </text>
-      <text x="200" y="160" font-family="Arial" font-size="28" font-weight="bold" fill="white" text-anchor="middle">
-        💪
-      </text>
-      <text x="200" y="200" font-family="Arial" font-size="16" fill="white" text-anchor="middle" opacity="0.95">
-        ${exerciseName.length > 25 ? exerciseName.substring(0, 25) + '...' : exerciseName}
-      </text>
+      <text x="200" y="115" font-family="Arial" font-size="80" font-weight="bold" fill="white" text-anchor="middle" opacity="0.3">${firstLetter}</text>
+      <text x="200" y="160" font-family="Arial" font-size="28" font-weight="bold" fill="white" text-anchor="middle">💪</text>
+      <text x="200" y="200" font-family="Arial" font-size="16" fill="white" text-anchor="middle" opacity="0.95">${exerciseName.length > 25 ? exerciseName.substring(0, 25) + '...' : exerciseName}</text>
     </svg>
   `)}`;
 }
 
 // ============================================================
-// BUILD SESSION MAP DYNAMICALLY FROM DATA
+// GET YOUTUBE THUMBNAIL FROM VIDEO URL
+// ============================================================
+function getYouTubeThumbnail(videoUrl) {
+  if (!videoUrl) return null;
+  
+  let videoId = null;
+  
+  if (videoUrl.includes('youtube.com/shorts/')) {
+    const match = videoUrl.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+  } else if (videoUrl.includes('watch?v=')) {
+    const match = videoUrl.match(/v=([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+  } else if (videoUrl.includes('youtu.be/')) {
+    const match = videoUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+  } else if (videoUrl.includes('embed/')) {
+    const match = videoUrl.match(/embed\/([a-zA-Z0-9_-]{11})/);
+    if (match) videoId = match[1];
+  }
+  
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  
+  return null;
+}
+
+// ============================================================
+// BUILD SESSION MAP DYNAMICALLY
 // ============================================================
 function buildSessionMap() {
   if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
@@ -646,7 +677,7 @@ function switchSession(index) {
 }
 
 // ============================================================
-// RENDER SESSION CONTENT
+// RENDER SESSION CONTENT - WITH VIDEO THUMBNAILS
 // ============================================================
 function renderSessionContent(sessionIndex) {
   const contentContainer = document.getElementById('workoutContent');
@@ -705,23 +736,49 @@ function renderSessionContent(sessionIndex) {
   section.exercises.forEach((exercise, exerciseIndex) => {
     const id = `${dayIndex}-${exerciseIndex}`;
     
-    // Use real image if available, otherwise use fallback
-    const imageUrl = exercise.imageUrl || getFallbackImage(exercise.eng);
+    // 🎬 Check if this exercise has a video
+    const videoThumbnail = getYouTubeThumbnail(exercise.videoUrl);
+    
+    let mediaHtml = '';
+    
+    if (videoThumbnail) {
+      // 🎬 VIDEO: Show YouTube thumbnail with play button
+      mediaHtml = `
+        <div class="exercise-media" onclick="window.open('${exercise.videoUrl}', '_blank')">
+          <img src="${videoThumbnail}" alt="${exercise.eng}" loading="lazy" 
+               onerror="this.src='${getFallbackImage(exercise.eng)}'">
+          <div class="play-icon">▶</div>
+          <span class="video-badge">▶ VIDEO</span>
+        </div>
+      `;
+    } else if (exercise.imageUrl) {
+      // 🖼️ IMAGE: Show the image
+      mediaHtml = `
+        <div class="exercise-media">
+          <img src="${exercise.imageUrl}" alt="${exercise.eng}" loading="lazy" 
+               onerror="this.src='${getFallbackImage(exercise.eng)}'">
+        </div>
+      `;
+    } else {
+      // 🎨 FALLBACK: Colored card with exercise name
+      mediaHtml = `
+        <div class="exercise-media">
+          <img src="${getFallbackImage(exercise.eng)}" alt="${exercise.eng}">
+        </div>
+      `;
+    }
+
     const savedWeight = localStorage.getItem(`weight-${id}`) || '';
     const savedAchieved = localStorage.getItem(`achieved-${id}`) || '';
 
     html += `
       <div class="exercise-card">
-        <div class="exercise-image">
-          <img src="${imageUrl}" alt="${exercise.eng}" loading="lazy" 
-               onerror="this.src='${getFallbackImage(exercise.eng)}'">
-        </div>
+        ${mediaHtml}
 
         <div class="exercise-header">
           <h3>${exercise.eng || 'Exercise'}</h3>
           <div class="arabic">${exercise.arb || ''}</div>
           <span class="muscle">${exercise.muscle || '—'}</span>
-          ${exercise.videoUrl ? `<a href="${exercise.videoUrl}" target="_blank" class="btn-video">▶️ Watch</a>` : ''}
         </div>
 
         <div class="details">
