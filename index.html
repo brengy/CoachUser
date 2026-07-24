@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Workout Planner</title>
-<!-- Simple Dumbbell Favicon -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='35' width='80' height='30' rx='5' fill='%23333'/><rect x='0' y='25' width='20' height='50' rx='5' fill='%23555'/><rect x='80' y='25' width='20' height='50' rx='5' fill='%23555'/></svg>">
 <style>
   * { box-sizing: border-box; }
@@ -15,29 +14,15 @@
     margin: 0;
     padding: 0;
   }
-
   header {
     background: linear-gradient(135deg, #111827, #1f2937);
     color: white;
     padding: 28px 18px;
     text-align: center;
   }
-
-  header h1 {
-    margin: 0 0 8px;
-    font-size: clamp(24px, 5vw, 38px);
-  }
-
-  header p {
-    margin: 0;
-    color: #d1d5db;
-  }
-
-  .container {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 20px;
-  }
+  header h1 { margin: 0 0 8px; font-size: clamp(24px, 5vw, 38px); }
+  header p { margin: 0; color: #d1d5db; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
   /* ===== LOGIN SECTION ===== */
   .login-section {
@@ -49,24 +34,9 @@
     text-align: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
-
-  .login-section h2 {
-    margin-top: 0;
-    color: #111827;
-    font-size: 28px;
-  }
-
-  .login-section .emoji {
-    font-size: 48px;
-    display: block;
-    margin-bottom: 12px;
-  }
-
-  .login-section p {
-    color: #6b7280;
-    margin-bottom: 20px;
-  }
-
+  .login-section h2 { margin-top: 0; color: #111827; font-size: 28px; }
+  .login-section .emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+  .login-section p { color: #6b7280; margin-bottom: 20px; }
   .login-section input {
     width: 100%;
     padding: 14px 18px;
@@ -76,13 +46,7 @@
     margin-bottom: 16px;
     transition: 0.3s;
   }
-
-  .login-section input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
-
+  .login-section input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
   .login-section .btn-login {
     padding: 14px 40px;
     background: #2563eb;
@@ -95,42 +59,12 @@
     transition: 0.2s;
     width: 100%;
   }
-
-  .login-section .btn-login:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-  }
-
-  .login-section .btn-login:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .login-section .message {
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 12px;
-    display: none;
-  }
-
-  .login-section .message.success {
-    display: block;
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  .login-section .message.error {
-    display: block;
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .login-section .message.info {
-    display: block;
-    background: #dbeafe;
-    color: #1e40af;
-  }
+  .login-section .btn-login:hover { background: #1d4ed8; transform: translateY(-2px); }
+  .login-section .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .login-section .message { padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
+  .login-section .message.success { display: block; background: #d1fae5; color: #065f46; }
+  .login-section .message.error { display: block; background: #fee2e2; color: #991b1b; }
+  .login-section .message.info { display: block; background: #dbeafe; color: #1e40af; }
 
   /* ===== WEEK TABS ===== */
   .week-container {
@@ -142,11 +76,7 @@
     border: 1px solid #e5e7eb;
     display: none;
   }
-
-  .week-container.visible {
-    display: block;
-  }
-
+  .week-container.visible { display: block; }
   .week-header {
     display: flex;
     justify-content: space-between;
@@ -155,13 +85,7 @@
     flex-wrap: wrap;
     gap: 10px;
   }
-
-  .week-header .user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
+  .week-header .user-info { display: flex; align-items: center; gap: 12px; }
   .week-header .user-info .username-badge {
     background: #dbeafe;
     color: #1e40af;
@@ -170,7 +94,6 @@
     font-weight: 600;
     font-size: 14px;
   }
-
   .week-header .logout-btn {
     background: #dc2626;
     color: white;
@@ -182,17 +105,10 @@
     font-size: 14px;
     transition: 0.2s;
   }
+  .week-header .logout-btn:hover { background: #b91c1c; }
+  .week-nav-container { width: 100%; margin-top: 8px; }
 
-  .week-header .logout-btn:hover {
-    background: #b91c1c;
-  }
-
-  /* ===== WEEK NAVIGATION ===== */
-  .week-nav-container {
-    width: 100%;
-    margin-top: 8px;
-  }
-
+  /* ===== WEEK TABS ===== */
   .week-nav-tabs {
     display: flex;
     gap: 8px;
@@ -201,7 +117,6 @@
     border-bottom: 2px solid #e5e7eb;
     padding-bottom: 10px;
   }
-
   .week-tab {
     padding: 8px 20px;
     border: 2px solid #e5e7eb;
@@ -213,84 +128,41 @@
     transition: all 0.2s;
     color: #6b7280;
   }
+  .week-tab:hover { background: #f3f4f6; border-color: #9ca3af; }
+  .week-tab.active { background: #1e40af; color: white; border-color: #1e40af; }
+  .week-tab .week-label { display: block; font-size: 11px; font-weight: normal; opacity: 0.7; }
+  .week-tab.active .week-label { opacity: 0.9; }
 
-  .week-tab:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  .week-tab.active {
-    background: #1e40af;
-    color: white;
-    border-color: #1e40af;
-  }
-
-  .week-tab .week-label {
-    display: block;
-    font-size: 11px;
-    font-weight: normal;
-    opacity: 0.7;
-  }
-
-  .week-tab.active .week-label {
-    opacity: 0.9;
-  }
-
-  /* ===== SESSION TABS ===== */
+  /* ===== SESSION TABS - DYNAMIC GRID ===== */
   .session-tabs-container {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
     gap: 8px;
+    flex-wrap: wrap;
     width: 100%;
   }
-
   .session-tab {
-    padding: 12px 4px;
+    padding: 10px 16px;
     border: 2px solid #e5e7eb;
     border-radius: 10px;
     background: white;
     cursor: pointer;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.2s;
     color: #1f2937;
     text-align: center;
+    flex: 1;
+    min-width: 70px;
   }
-
-  .session-tab:hover:not(.active) {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  .session-tab.active {
-    background: #1e40af;
-    color: white;
-    border-color: #1e40af;
-    transform: scale(1.05);
-    z-index: 1;
-  }
-
-  .session-tab .session-icon {
-    display: block;
-    font-size: 20px;
-    margin-top: 2px;
-  }
+  .session-tab:hover:not(.active) { background: #f3f4f6; border-color: #9ca3af; }
+  .session-tab.active { background: #1e40af; color: white; border-color: #1e40af; transform: scale(1.05); z-index: 1; }
+  .session-tab .session-label { display: block; font-size: 11px; }
+  .session-tab .session-icon { display: block; font-size: 18px; margin-top: 2px; }
 
   /* ===== WORKOUT CONTENT ===== */
-  .workout-content {
-    display: none;
-    animation: fadeIn 0.4s ease;
-  }
-
-  .workout-content.active {
-    display: block;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
+  .workout-content { display: none; animation: fadeIn 0.4s ease; }
+  .workout-content.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
   .workout-header {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     color: white;
@@ -301,28 +173,9 @@
     align-items: center;
     flex-wrap: wrap;
   }
-
-  .workout-header h2 {
-    margin: 0;
-    font-size: 20px;
-  }
-
-  .workout-header .session-badge {
-    background: rgba(255,255,255,0.15);
-    padding: 4px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-  }
-
-  .workout-header .major-badge {
-    background: rgba(37, 99, 235, 0.3);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    margin-top: 4px;
-    display: inline-block;
-  }
-
+  .workout-header h2 { margin: 0; font-size: 20px; }
+  .workout-header .session-badge { background: rgba(255,255,255,0.15); padding: 4px 16px; border-radius: 20px; font-size: 14px; }
+  .workout-header .major-badge { background: rgba(37,99,235,0.3); padding: 4px 14px; border-radius: 20px; font-size: 13px; margin-top: 4px; display: inline-block; }
   .exercise-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -331,7 +184,6 @@
     background: #e5e7eb;
     border-radius: 0 0 12px 12px;
   }
-
   .exercise-card {
     background: white;
     border-radius: 14px;
@@ -339,12 +191,7 @@
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     transition: 0.2s;
   }
-
-  .exercise-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  }
-
+  .exercise-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
   .exercise-image {
     width: 100%;
     height: 160px;
@@ -355,13 +202,7 @@
     overflow: hidden;
     position: relative;
   }
-
-  .exercise-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
+  .exercise-image img { width: 100%; height: 100%; object-fit: cover; }
   .exercise-image .placeholder {
     color: #6b7280;
     font-size: 14px;
@@ -374,84 +215,27 @@
     width: 100%;
     height: 100%;
   }
-
-  .exercise-image .placeholder .icon {
-    font-size: 36px;
-    display: block;
-    margin-bottom: 8px;
-  }
-
-  .exercise-header {
-    padding: 14px 18px 8px;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .exercise-header h3 {
-    margin: 0 0 4px;
-    font-size: 18px;
-  }
-
-  .arabic {
-    direction: rtl;
-    text-align: right;
-    font-size: 15px;
-    color: #6b7280;
-    margin-bottom: 6px;
-  }
-
-  .muscle {
-    display: inline-block;
-    background: #eff6ff;
-    color: #1d4ed8;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: bold;
-  }
-
+  .exercise-image .placeholder .icon { font-size: 36px; display: block; margin-bottom: 8px; }
+  .exercise-header { padding: 14px 18px 8px; border-bottom: 1px solid #f3f4f6; }
+  .exercise-header h3 { margin: 0 0 4px; font-size: 18px; }
+  .arabic { direction: rtl; text-align: right; font-size: 15px; color: #6b7280; margin-bottom: 6px; }
+  .muscle { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
   .details {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     padding: 12px 18px;
   }
-
-  .detail {
-    background: #f9fafb;
-    border-radius: 8px;
-    padding: 8px;
-    text-align: center;
-  }
-
-  .detail-label {
-    display: block;
-    font-size: 10px;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-  }
-
-  .detail-value {
-    font-weight: bold;
-    font-size: 14px;
-  }
-
+  .detail { background: #f9fafb; border-radius: 8px; padding: 8px; text-align: center; }
+  .detail-label { display: block; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .detail-value { font-weight: bold; font-size: 14px; }
   .inputs {
     padding: 0 18px 16px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
-
-  .input-group label {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    color: #6b7280;
-    margin-bottom: 4px;
-  }
-
+  .input-group label { display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
   .input-group input {
     width: 100%;
     padding: 8px 12px;
@@ -460,12 +244,7 @@
     font-size: 13px;
     transition: 0.2s;
   }
-
-  .input-group input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
+  .input-group input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
   /* ===== SAVE BAR ===== */
   .save-bar {
@@ -478,11 +257,7 @@
     backdrop-filter: blur(8px);
     display: none;
   }
-
-  .save-bar.visible {
-    display: block;
-  }
-
+  .save-bar.visible { display: block; }
   .save-btn {
     border: 0;
     background: #15803d;
@@ -494,63 +269,18 @@
     cursor: pointer;
     transition: 0.2s;
   }
-
-  .save-btn:hover {
-    background: #166534;
-    transform: scale(1.02);
-  }
-
-  .save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .save-message {
-    margin-left: 12px;
-    font-weight: 600;
-    font-size: 14px;
-  }
-
-  .save-message.success {
-    color: #15803d;
-  }
-
-  .save-message.error {
-    color: #dc2626;
-  }
+  .save-btn:hover { background: #166534; transform: scale(1.02); }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .save-message { margin-left: 12px; font-weight: 600; font-size: 14px; }
+  .save-message.success { color: #15803d; }
+  .save-message.error { color: #dc2626; }
 
   /* ===== EMPTY STATES ===== */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #6b7280;
-  }
-
-  .empty-state .icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-  }
-
-  .empty-state h3 {
-    color: #374151;
-    margin-bottom: 8px;
-  }
-
-  .no-exercises {
-    text-align: center;
-    padding: 40px;
-    color: #6b7280;
-    background: white;
-    border-radius: 12px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #6b7280;
-  }
-
+  .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 { color: #374151; margin-bottom: 8px; }
+  .no-exercises { text-align: center; padding: 40px; color: #6b7280; background: white; border-radius: 12px; }
+  .loading { text-align: center; padding: 40px; color: #6b7280; }
   .loading .spinner {
     display: inline-block;
     width: 40px;
@@ -560,40 +290,24 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
   /* ===== RESPONSIVE ===== */
   @media (max-width: 600px) {
-    .session-tabs-container {
-      grid-template-columns: repeat(5, 1fr);
-      gap: 4px;
-    }
-    .session-tab {
-      padding: 8px 2px;
-      font-size: 12px;
-    }
-    .session-tab .session-icon {
-      font-size: 16px;
-    }
+    .session-tabs-container { gap: 4px; }
+    .session-tab { padding: 6px 8px; font-size: 11px; min-width: 55px; }
+    .session-tab .session-label { font-size: 10px; }
+    .session-tab .session-icon { font-size: 14px; }
     .exercise-grid { padding: 10px; }
     .exercise-image { height: 140px; }
     .inputs { grid-template-columns: 1fr 1fr; }
   }
-
   @media (max-width: 400px) {
     .exercise-grid { grid-template-columns: 1fr; }
     .inputs { grid-template-columns: 1fr; }
-    .session-tabs-container {
-      grid-template-columns: repeat(3, 1fr);
-    }
   }
 </style>
 </head>
-
 <body>
 
 <header>
@@ -608,7 +322,6 @@
     <span class="emoji">👋</span>
     <h2>Welcome!</h2>
     <p>Enter your username to view your workout plan</p>
-
     <input type="text" id="usernameInput" placeholder="Enter your username" onkeypress="if(event.key==='Enter') login()">
     <button class="btn-login" id="loginBtn" onclick="login()">📥 Load My Workout</button>
     <div id="loginMessage" class="message"></div>
@@ -624,7 +337,7 @@
       <div class="week-nav-container">
         <!-- Week Tabs -->
         <div class="week-nav-tabs" id="weekTabs"></div>
-        <!-- Session Tabs (1-5) -->
+        <!-- Session Tabs (Dynamic) -->
         <div class="session-tabs-container" id="sessionTabs"></div>
       </div>
     </div>
@@ -660,13 +373,11 @@ let activeWeekIndex = 0;
 let activeSessionIndex = 0;
 let currentUsername = '';
 
-// ✅ FIXED: Day 1,2,4,5,6 → Session 1,2,3,4,5
-const SESSION_MAP = [
-  { dayIndex: 0, label: 'Session 1' },  // Day 1
-  { dayIndex: 1, label: 'Session 2' },  // Day 2
-  { dayIndex: 2, label: 'Session 3' },  // Day 4
-  { dayIndex: 3, label: 'Session 4' },  // Day 5
-  { dayIndex: 4, label: 'Session 5' }   // Day 6
+const fallbackImages = [
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop'
 ];
 
 // Load saved username
@@ -675,53 +386,8 @@ if (savedUsername) {
   document.getElementById('usernameInput').value = savedUsername;
   currentUsername = savedUsername;
   window.addEventListener('load', function() {
-    if (savedUsername) {
-      setTimeout(login, 500);
-    }
+    if (savedUsername) setTimeout(login, 500);
   });
-}
-
-// ============================================================
-// IMAGE DATABASE
-// ============================================================
-const exerciseImages = {
-  'Incline Barbell Chest Press': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'Lat Pulldown': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'Flat Dumbbell Chest Press': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'Hammer Row (Wide Grip)': 'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop',
-  'Y Raises': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'No Cheat Dumbbell Curl': 'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop',
-  'Cable Push Down': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'Wrist Curl': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'Hack Squats': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'Romanian Deadlift (RDL)': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'Leg Extension': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'Lying Leg Curl': 'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop',
-  'Machine Shoulder Press': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'Hammer Row (Close Grip)': 'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop',
-  'Fly Machine (Pec Deck)': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'Cable Shrugs': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'Rear Delt Flies': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'Hammer Curl': 'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop',
-  'Overhead Cable/DB Extension': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop'
-};
-
-const fallbackImages = [
-  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1581009146145-b5b2b1a8b1a8?w=400&h=300&fit=crop'
-];
-
-function getExerciseImage(exerciseName) {
-  if (exerciseImages[exerciseName]) return exerciseImages[exerciseName];
-  const lowerName = exerciseName.toLowerCase();
-  for (const [key, url] of Object.entries(exerciseImages)) {
-    if (lowerName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerName)) {
-      return url;
-    }
-  }
-  return fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
 }
 
 // ============================================================
@@ -736,19 +402,13 @@ async function callApi(action, data = {}) {
         params.append(key, data[key]);
       }
     });
-
     const url = API_URL + '?' + params.toString();
     console.log('API Request:', url);
-
     const response = await fetch(url, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error('HTTP Error ' + response.status);
-    }
-
+    if (!response.ok) throw new Error('HTTP Error ' + response.status);
     const result = await response.json();
     console.log('API Response:', result);
     return result;
-
   } catch (error) {
     console.error('API Error:', error);
     showLoginMessage('❌ Error: ' + error.message, 'error');
@@ -761,10 +421,7 @@ async function callApi(action, data = {}) {
 // ============================================================
 async function login() {
   const username = document.getElementById('usernameInput').value.trim();
-  if (!username) {
-    showLoginMessage('Please enter your username', 'error');
-    return;
-  }
+  if (!username) { showLoginMessage('Please enter your username', 'error'); return; }
 
   currentUsername = username;
   localStorage.setItem(STORAGE_KEY_USER, username);
@@ -772,7 +429,6 @@ async function login() {
   const btn = document.getElementById('loginBtn');
   btn.disabled = true;
   btn.textContent = '⏳ Loading...';
-
   showLoginMessage('Loading your workout plan...', 'info');
 
   const result = await callApi('getWorkoutData', { username });
@@ -812,13 +468,11 @@ function logout() {
   currentPipeline = [];
   activeWeekIndex = 0;
   activeSessionIndex = 0;
-
   document.getElementById('loginSection').style.display = 'block';
   document.getElementById('weekContainer').classList.remove('visible');
   document.getElementById('saveBar').classList.remove('visible');
   document.getElementById('usernameInput').value = '';
   document.getElementById('usernameInput').focus();
-
   showLoginMessage('Logged out successfully', 'success');
 }
 
@@ -836,28 +490,52 @@ function renderAllTabs() {
 // ============================================================
 function renderWeekTabs() {
   const container = document.getElementById('weekTabs');
-  
-  if (!currentPipeline || currentPipeline.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
+  if (!currentPipeline || currentPipeline.length === 0) { container.innerHTML = ''; return; }
 
   let html = '';
   currentPipeline.forEach((week, index) => {
     const isActive = index === activeWeekIndex;
-    html += `
-      <button class="week-tab ${isActive ? 'active' : ''}" onclick="switchWeek(${index})">
-        ${week.weekLabel}
-        <span class="week-label">5 sessions</span>
-      </button>
-    `;
+    const sessionCount = week.days.filter(d => d.type !== 'rest').length;
+    html += `<button class="week-tab ${isActive ? 'active' : ''}" onclick="switchWeek(${index})">${week.weekLabel}<span class="week-label">${sessionCount} sessions</span></button>`;
   });
-
   container.innerHTML = html;
 }
 
 // ============================================================
-// RENDER SESSION TABS (Session 1-5)
+// BUILD SESSION MAP DYNAMICALLY FROM DATA
+// ============================================================
+function buildSessionMap() {
+  if (!currentPipeline || currentPipeline.length === 0 || activeWeekIndex >= currentPipeline.length) {
+    return [];
+  }
+  
+  const week = currentPipeline[activeWeekIndex];
+  if (!week || !week.days) return [];
+  
+  const sessionMap = [];
+  let sessionCounter = 1;
+  
+  week.days.forEach((day, index) => {
+    // Only include workout days (skip rest days)
+    if (day.type !== 'rest') {
+      const dayData = currentWorkoutData[index];
+      const hasExercises = dayData && dayData.exercises && dayData.exercises.length > 0;
+      
+      sessionMap.push({
+        dayIndex: index,
+        label: 'Session ' + sessionCounter,
+        hasExercises: hasExercises,
+        dayName: day.label
+      });
+      sessionCounter++;
+    }
+  });
+  
+  return sessionMap;
+}
+
+// ============================================================
+// RENDER SESSION TABS - DYNAMIC
 // ============================================================
 function renderSessionTabs() {
   const container = document.getElementById('sessionTabs');
@@ -867,20 +545,27 @@ function renderSessionTabs() {
     return;
   }
 
+  const sessionMap = buildSessionMap();
+  
+  if (sessionMap.length === 0) {
+    container.innerHTML = '<p style="color:#6b7280;text-align:center;width:100%;">No workout sessions found</p>';
+    return;
+  }
+
   let html = '';
 
-  SESSION_MAP.forEach((session, index) => {
+  sessionMap.forEach((session, index) => {
     const isActive = index === activeSessionIndex;
-    const dayIndex = session.dayIndex;
     
-    const daySection = currentWorkoutData[dayIndex] || { exercises: [] };
+    const daySection = currentWorkoutData[session.dayIndex] || { exercises: [] };
     const hasWorkout = daySection.exercises && daySection.exercises.length > 0;
+    
     const icon = hasWorkout ? '💪' : '📋';
 
     html += `
       <button class="session-tab ${isActive ? 'active' : ''}" 
               onclick="switchSession(${index})">
-        ${session.label}
+        <span class="session-label">${session.label}</span>
         <span class="session-icon">${icon}</span>
       </button>
     `;
@@ -893,17 +578,10 @@ function renderSessionTabs() {
 // SWITCH WEEK
 // ============================================================
 function switchWeek(index) {
-  if (index === activeWeekIndex) return;
-  if (index >= currentPipeline.length) return;
-  
+  if (index === activeWeekIndex || index >= currentPipeline.length) return;
   activeWeekIndex = index;
   activeSessionIndex = 0;
-  
-  const weekTabs = document.querySelectorAll('.week-tab');
-  weekTabs.forEach((tab, i) => {
-    tab.classList.toggle('active', i === index);
-  });
-  
+  document.querySelectorAll('.week-tab').forEach((tab, i) => tab.classList.toggle('active', i === index));
   renderSessionTabs();
   renderSessionContent(activeSessionIndex);
 }
@@ -913,42 +591,38 @@ function switchWeek(index) {
 // ============================================================
 function switchSession(index) {
   if (index === activeSessionIndex) return;
-  
   activeSessionIndex = index;
-  
-  const sessionTabs = document.querySelectorAll('.session-tab');
-  sessionTabs.forEach((tab, i) => {
-    tab.classList.toggle('active', i === index);
-  });
-  
+  document.querySelectorAll('.session-tab').forEach((tab, i) => tab.classList.toggle('active', i === index));
   renderSessionContent(index);
 }
 
 // ============================================================
-// RENDER SESSION CONTENT
+// RENDER SESSION CONTENT - DYNAMIC
 // ============================================================
 function renderSessionContent(sessionIndex) {
   const contentContainer = document.getElementById('workoutContent');
 
-  const session = SESSION_MAP[sessionIndex];
-  if (!session) {
+  const sessionMap = buildSessionMap();
+  
+  if (sessionMap.length === 0 || sessionIndex >= sessionMap.length) {
     contentContainer.innerHTML = `
       <div class="empty-state">
         <div class="icon">📋</div>
-        <h3>No Session Data</h3>
-        <p>Please select a session</p>
+        <h3>No Sessions Available</h3>
+        <p>No workout sessions found for this week</p>
       </div>
     `;
     return;
   }
 
+  const session = sessionMap[sessionIndex];
   const dayIndex = session.dayIndex;
 
   if (!currentWorkoutData || currentWorkoutData.length === 0 || dayIndex >= currentWorkoutData.length) {
     contentContainer.innerHTML = `
       <div class="empty-state">
         <div class="icon">📋</div>
-        <h3>No Exercises for This Session</h3>
+        <h3>No Exercises for ${session.label}</h3>
         <p>Your coach hasn't added exercises for this session yet</p>
       </div>
     `;
@@ -971,7 +645,7 @@ function renderSessionContent(sessionIndex) {
     <div class="workout-content active">
       <div class="workout-header">
         <div>
-          <h2>${section.title || 'Workout'}</h2>
+          <h2>${section.title || session.label}</h2>
           <span class="major-badge">🏷️ ${major}</span>
         </div>
         <span class="session-badge">${session.label}</span>
@@ -981,7 +655,7 @@ function renderSessionContent(sessionIndex) {
 
   section.exercises.forEach((exercise, exerciseIndex) => {
     const id = `${dayIndex}-${exerciseIndex}`;
-    const imageUrl = getExerciseImage(exercise.eng);
+    const imageUrl = exercise.imageUrl || fallbackImages[0];
     const savedWeight = localStorage.getItem(`weight-${id}`) || '';
     const savedAchieved = localStorage.getItem(`achieved-${id}`) || '';
 
